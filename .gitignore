@@ -3,6 +3,15 @@ cscope.out
 TAGS
 tags
 
+# The following files contains machine specific commands that help installing pintOS for the first time
+# Refer to the following link for more help: https://tssurya.wordpress.com/2014/08/16/installing-pintos-on-your-machine/
+./utils/pintos-gdb
+./utils/Makefile
+./threads/Make.vars
+./utils/pintos
+./utils/Pintos.pm
+
+
 # Prerequisites
 *.d
 
