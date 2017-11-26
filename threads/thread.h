@@ -88,6 +88,14 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+
+    /* Additional struct member identifying ticks till thread unblocks from sleep starting from OS
+       boot time, this member is set by timer_sleep() and checked by timer_interrupt() to decide to
+       unblock the thread. This member was added to avoid busy waiting in timer_sleep().
+    */
+    int64_t sleep_ticks;                /* Ticks till thread unblocks from sleep
+                                           starting from OS boot time. */
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -137,5 +145,12 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+/* Compares the sleep time of two threads list elements A and B, given
+   auxiliary data AUX.  Returns true if A has less sleep time than B, or
+   false if A has greater sleep time than or equal to B. */
+bool less_sleep (const struct list_elem *a,
+                 const struct list_elem *b,
+                 void *aux);
 
 #endif /* threads/thread.h */
