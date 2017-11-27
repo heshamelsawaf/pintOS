@@ -626,6 +626,8 @@ sub run_qemu {
     push (@cmd, '-hdc', $disks[2]) if defined $disks[2];
     push (@cmd, '-hdd', $disks[3]) if defined $disks[3];
     push (@cmd, '-m', $mem);
+	push (@cmd, '-device', 'isa-debug-exit,iobase=0xf4,iosize=0x04');
+
     push (@cmd, '-net', 'none');
     push (@cmd, '-nographic') if $vga eq 'none';
     push (@cmd, '-serial', 'stdio') if $serial && $vga ne 'none';
@@ -773,7 +775,7 @@ sub disk_geometry {
 # Also prints the command it's running and checks that it succeeded.
 sub run_command {
     print join (' ', @_), "\n";
-    die "command failed\n" if xsystem (@_);
+    die "command failed\n" if !xsystem (@_);
 }
 
 # xsystem(@args)
@@ -859,6 +861,7 @@ sub xsystem {
 	    exit 0;
 	}
 
+print $?;
 	return $?;
     }
 }
