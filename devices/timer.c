@@ -196,9 +196,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
-  struct list_elem *e = list_begin(&thread_sleep_list);
+  struct thread *cur = running_thread ();
+
   /* Iterate over all sleeping threads, unblock every thread which finishes sleeping
      for the given duration and remove it out of sleeping threads list. */
+  struct list_elem *e = list_begin(&thread_sleep_list);
   while (e != list_end (&thread_sleep_list))
     {
         struct thread *t = list_entry (e, struct thread, elem);
@@ -212,7 +214,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
         /* Remove thread out of sleeping threads list. */
         list_pop_front (&thread_sleep_list);
         /* Unblock sleeping thread. */
-        thread_unblock(t);
+        thread_unblock (t);
+        /* Enforce preemption. */
+        if (preempts (t))
+            intr_yield_on_return ();
     }
 }
 

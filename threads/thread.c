@@ -245,7 +245,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &cur->elem, !less_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -315,8 +315,9 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
+  /* Insert thread in ready queue, ready queue is descendingly ordered by priority. */
   if (cur != idle_thread)
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, !less_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -584,11 +585,32 @@ allocate_tid (void)
 
 /* Returns true if thread A has less sleep time than thread B, false otherwise. */
 bool
-less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux) {
+less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux)
+{
     struct thread *thread_a = list_entry (a, struct thread, elem);
     struct thread *thread_b = list_entry (b, struct thread, elem);
 
     return thread_a->sleep_ticks < thread_b->sleep_ticks;
+}
+
+/* Returns true if thread A has less priotity than thread B, false otherwise. */
+bool
+less_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+    struct thread *thread_a = list_entry (a, struct thread, elem);
+    struct thread *thread_b = list_entry (b, struct thread, elem);
+
+    return thread_a->priority < thread_b->priority;
+}
+
+/* Returns true if thread t should preempt currently running thread if
+it gets added to running queue. */.
+bool
+preempts (const struct thread *t)
+{
+    struct thread *cur = running_thread ();
+
+    return less_priority (cur->elem, t->elem);
 }
 
 /* Offset of `stack' member within `struct thread'.
