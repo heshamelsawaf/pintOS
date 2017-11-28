@@ -64,6 +64,7 @@ static void kernel_thread (thread_func *, void *aux);
 static void idle (void *aux UNUSED);
 static struct thread *running_thread (void);
 static struct thread *next_thread_to_run (void);
+static int next_thread_to_run_priority (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
 static void *alloc_frame (struct thread *, size_t size);
@@ -245,8 +246,15 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered (&ready_list, &cur->elem, !less_priority, NULL);
+  list_insert_ordered (&ready_list, &(t)->elem, greater_priority, NULL);
   t->status = THREAD_READY;
+  /* Preempt unblocked thread only if it has a higher priority than
+  currently running thread and kernel is not currently executing an
+  external interrupt. External interrupts can control preemption in
+  scheduling by using 'yield_on_return ()'. */
+  if (!intr_context () && preempts (t))
+    thread_yield ();
+  
   intr_set_level (old_level);
 }
 
@@ -317,7 +325,7 @@ thread_yield (void)
   old_level = intr_disable ();
   /* Insert thread in ready queue, ready queue is descendingly ordered by priority. */
   if (cur != idle_thread)
-    list_insert_ordered (&ready_list, &cur->elem, !less_priority, NULL);
+    list_insert_ordered (&ready_list, &cur->elem, greater_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -344,7 +352,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
+  enum intr_level old_level;
+
   thread_current ()->priority = new_priority;
+  old_level = intr_disable ();
+
+  if (next_thread_to_run_priority () > new_priority)
+    thread_yield ();
+
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's priority. */
@@ -486,6 +502,20 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
+/* Returns the next thread-to-be-scheduled's priority.  Should
+   find a thread from the run queue, unless the run queue is
+   empty.  (If the running thread can continue running, then it
+   will be in the run queue.)  If the run queue is empty, return
+   idle_thread's priority. */
+int
+next_thread_to_run_priority(void)
+{
+  if (list_empty (&ready_list))
+    return idle_thread->priority;
+  else
+    return list_entry (list_front (&ready_list), struct thread, elem)->priority;
+}
+
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
@@ -593,24 +623,24 @@ less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux)
     return thread_a->sleep_ticks < thread_b->sleep_ticks;
 }
 
-/* Returns true if thread A has less priotity than thread B, false otherwise. */
+/* Returns true if thread A has greater(or equal) priotity than thread B, false otherwise. */
 bool
-less_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+greater_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
 {
     struct thread *thread_a = list_entry (a, struct thread, elem);
     struct thread *thread_b = list_entry (b, struct thread, elem);
 
-    return thread_a->priority < thread_b->priority;
+    return thread_a->priority >= thread_b->priority;
 }
 
 /* Returns true if thread t should preempt currently running thread if
-it gets added to running queue. */.
+it gets added to running queue. */
 bool
 preempts (const struct thread *t)
 {
-    struct thread *cur = running_thread ();
+    struct thread *cur = thread_current ();
 
-    return less_priority (cur->elem, t->elem);
+    return !greater_priority (&(cur->elem), &(t->elem), NULL);
 }
 
 /* Offset of `stack' member within `struct thread'.

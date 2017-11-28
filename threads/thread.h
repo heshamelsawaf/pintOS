@@ -154,11 +154,11 @@ bool less_sleep (const struct list_elem *a,
                  void *aux);
 
 /* Compares the priority of two threads list elements A and B, given
-auxiliary data AUX.  Returns true if A has less priority than B, or
-false if A has greater priority than or equal to B. */
-bool less_priority (const struct list_elem *a,
-                    const struct list_elem *b,
-                    void *aux);
+   auxiliary data AUX.  Returns true if A has greater(or equal) priority
+   than B, or false if A has less priority than B. */
+bool greater_priority (const struct list_elem *a,
+                       const struct list_elem *b,
+                       void *aux);
 
 /* Returns true if a thread should preempt the currently running thread
 if it gets added to ready queue. */
