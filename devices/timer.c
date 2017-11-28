@@ -191,7 +191,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
 
-
   /* Iterate over all sleeping threads, unblock every thread which finishes sleeping
      for the given duration and remove it out of sleeping threads list. */
   struct list_elem *e = list_begin(&thread_sleep_list);

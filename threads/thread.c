@@ -210,6 +210,8 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  // test_preempt ();
+
   return tid;
 }
 
@@ -252,9 +254,9 @@ thread_unblock (struct thread *t)
   currently running thread and kernel is not currently executing an
   external interrupt. External interrupts can control preemption in
   scheduling by using 'yield_on_return ()'. */
-  if (!intr_context () && preempts (t))
+  if (thread_current () != idle_thread && !intr_context () && preempts (t))
     thread_yield ();
-  
+
   intr_set_level (old_level);
 }
 
@@ -630,7 +632,18 @@ greater_priority (const struct list_elem *a, const struct list_elem *b, void *au
     struct thread *thread_a = list_entry (a, struct thread, elem);
     struct thread *thread_b = list_entry (b, struct thread, elem);
 
-    return thread_a->priority >= thread_b->priority;
+    return thread_a->priority > thread_b->priority;
+}
+
+void
+test_preempt (void)
+{
+    enum intr_level old_level = intr_disable ();
+    if (!list_empty (&ready_list) && preempts (
+            list_entry (list_front (&ready_list), struct thread, elem)))
+        thread_yield ();
+
+    intr_set_level (old_level);
 }
 
 /* Returns true if thread t should preempt currently running thread if
@@ -639,8 +652,7 @@ bool
 preempts (const struct thread *t)
 {
     struct thread *cur = thread_current ();
-
-    return !greater_priority (&(cur->elem), &(t->elem), NULL);
+    return greater_priority (&(t->elem), &(cur->elem), NULL);
 }
 
 /* Offset of `stack' member within `struct thread'.

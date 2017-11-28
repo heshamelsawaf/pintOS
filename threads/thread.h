@@ -164,4 +164,6 @@ bool greater_priority (const struct list_elem *a,
 if it gets added to ready queue. */
 bool preempts (const struct thread *t);
 
+void test_preempt (void);
+
 #endif /* threads/thread.h */
