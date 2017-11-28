@@ -5,9 +5,12 @@
 #include <stdbool.h>
 
 /* A counting semaphore. */
-struct semaphore 
+struct semaphore
   {
     unsigned value;             /* Current value. */
+    int64_t priority;           /* Priority of semaphore, used in condition variables
+                                to determine which semaphore should sema_up () next
+                                based on priority of waiting thread. */
     struct list waiters;        /* List of waiting threads. */
   };
 
@@ -18,7 +21,7 @@ void sema_up (struct semaphore *);
 void sema_self_test (void);
 
 /* Lock. */
-struct lock 
+struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
@@ -31,7 +34,7 @@ void lock_release (struct lock *);
 bool lock_held_by_current_thread (const struct lock *);
 
 /* Condition variable. */
-struct condition 
+struct condition
   {
     struct list waiters;        /* List of waiting threads. */
   };
@@ -40,6 +43,13 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
+
+/* Compares the priority of two semaphore list elements A and B, given
+   auxiliary data AUX.  Returns true if A has greater priority
+   than B, or false if A has less (or equal) priority than B. */
+bool sema_greater_priority (const struct list_elem *a,
+                            const struct list_elem *b,
+                            void *aux);
 
 /* Optimization barrier.
 

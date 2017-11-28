@@ -617,7 +617,7 @@ allocate_tid (void)
 
 /* Returns true if thread A has less sleep time than thread B, false otherwise. */
 bool
-less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux)
+less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *thread_a = list_entry (a, struct thread, elem);
     struct thread *thread_b = list_entry (b, struct thread, elem);
@@ -625,9 +625,9 @@ less_sleep (const struct list_elem *a, const struct list_elem *b, void *aux)
     return thread_a->sleep_ticks < thread_b->sleep_ticks;
 }
 
-/* Returns true if thread A has greater(or equal) priotity than thread B, false otherwise. */
+/* Returns true if thread A has greater priotity than thread B, false otherwise. */
 bool
-greater_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+greater_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *thread_a = list_entry (a, struct thread, elem);
     struct thread *thread_b = list_entry (b, struct thread, elem);
