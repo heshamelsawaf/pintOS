@@ -350,19 +350,73 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY. */
+/* Sets the current thread's priority and default priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority)
 {
   enum intr_level old_level;
 
-  thread_current ()->priority = new_priority;
+  thread_current ()->priority = thread_current ()->default_priority = new_priority;
+  donate (thread_current (), next_donated_priority (thread_current ()));
   old_level = intr_disable ();
 
   if (next_thread_to_run_priority () > new_priority)
     thread_yield ();
 
   intr_set_level (old_level);
+}
+
+/* Donate PRIORITY to T to prevent "priority inversion". */
+void
+donate (struct thread *t, int priority)
+{
+  struct thread *temp_thread;
+  ASSERT (!intr_context ());
+
+  if (t == NULL)
+    return;
+
+  temp_thread = t;
+
+  /* Handle nested priority. */
+  while (temp_thread)
+  {
+    temp_thread->priority = priority;
+    if (temp_thread->lock_waiting)
+    {
+      temp_thread->lock_waiting->priority = priority;
+      temp_thread = temp_thread->lock_waiting->holder;
+    }
+    else
+      temp_thread = NULL;   
+  }
+
+  if (t == thread_current () && !list_empty (&ready_list))
+  {
+        int next_priority = list_entry (list_front (&ready_list), struct thread,
+                                        elem)->priority;
+        if (next_priority > priority)
+            thread_yield ();
+  }
+}
+
+int
+next_donated_priority (struct thread *t)
+{
+  int new_priority;
+
+  if (t == NULL)
+    return;
+
+  if (list_empty (&t->locks))
+    new_priority = t->default_priority;
+  else
+  {
+    list_sort (&t->locks, lock_greater_priority, NULL);
+    new_priority = list_entry (list_front (&t->locks),
+                               struct lock, elem)->priority;
+  }
+  return new_priority;
 }
 
 /* Returns the current thread's priority. */
@@ -487,6 +541,9 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  list_init (&(t)->locks);
+  t->default_priority = priority;
+  t->lock_waiting = NULL;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }
@@ -515,7 +572,10 @@ next_thread_to_run_priority(void)
   if (list_empty (&ready_list))
     return idle_thread->priority;
   else
+  {
+    list_sort (&ready_list, greater_priority, NULL);
     return list_entry (list_front (&ready_list), struct thread, elem)->priority;
+  }
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -529,7 +589,10 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
+  {
+    list_sort (&ready_list, greater_priority, NULL);
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -607,7 +670,6 @@ allocate_tid (void)
 {
   static tid_t next_tid = 1;
   tid_t tid;
-
   lock_acquire (&tid_lock);
   tid = next_tid++;
   lock_release (&tid_lock);

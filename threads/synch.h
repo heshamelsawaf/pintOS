@@ -25,6 +25,9 @@ struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
+    int priority;               /* Highest priority between the thread(s) 
+                                   trying to acquire this lock. */
+    struct list_elem elem;      /* List element for locks list. */
   };
 
 void lock_init (struct lock *);
@@ -48,6 +51,13 @@ void cond_broadcast (struct condition *, struct lock *);
    auxiliary data AUX.  Returns true if A has greater priority
    than B, or false if A has less (or equal) priority than B. */
 bool sema_greater_priority (const struct list_elem *a,
+                            const struct list_elem *b,
+                            void *aux);
+
+/* Compares the priority of two locks list elements A and B, given
+   auxiliary data AUX.  Returns true if A has greater priority
+   than B, or false if A has less (or equal) priority than B. */
+bool lock_greater_priority (const struct list_elem *a,
                             const struct list_elem *b,
                             void *aux);
 

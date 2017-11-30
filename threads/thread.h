@@ -88,6 +88,11 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int default_priority;               /* Default priority of a the thread; to be used in donation*/
+    struct list locks;                  /* List of all locks held by thread. locks are added to this
+                                           list when they are first acquire and removed when they are
+                                           released. */
+    struct lock *lock_waiting;          /* Poniter to the lock which thread is waiting on. */
 
     /* Additional struct member identifying ticks till thread unblocks from sleep starting from OS
        boot time, this member is set by timer_sleep() and checked by timer_interrupt() to decide to
@@ -114,6 +119,12 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
+/* Donates priority to thread to prevent "priority inversion". */
+void donate (struct thread *, int);
+
+/* Returns the next priority to be assigned from THREAD. */
+int next_donated_priority (struct thread *);
 
 void thread_init (void);
 void thread_start (void);
