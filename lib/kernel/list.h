@@ -87,14 +87,14 @@
 #include <stdint.h>
 
 /* List element. */
-struct list_elem 
+struct list_elem
   {
     struct list_elem *prev;     /* Previous list element. */
     struct list_elem *next;     /* Next list element. */
   };
 
 /* List. */
-struct list 
+struct list
   {
     struct list_elem head;      /* List head. */
     struct list_elem tail;      /* List tail. */
@@ -173,6 +173,8 @@ void list_insert_ordered (struct list *, struct list_elem *,
                           list_less_func *, void *aux);
 void list_unique (struct list *, struct list *duplicates,
                   list_less_func *, void *aux);
+void list_modify_ordered (struct list_elem *,
+                          list_less_func *, void *aux);
 
 /* Max and min. */
 struct list_elem *list_max (struct list *, list_less_func *, void *aux);

@@ -210,8 +210,6 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  // test_preempt ();
-
   return tid;
 }
 
@@ -350,54 +348,56 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Sets the current thread's priority and default priority to NEW_PRIORITY. */
+/* Sets the current thread's priority and default priority to new_priority. */
 void
 thread_set_priority (int new_priority)
 {
   enum intr_level old_level;
 
+  // old_level = intr_disable ();
+
   thread_current ()->priority = thread_current ()->default_priority = new_priority;
+
   donate (thread_current (), next_donated_priority (thread_current ()));
-  old_level = intr_disable ();
 
-  if (next_thread_to_run_priority () > new_priority)
-    thread_yield ();
-
-  intr_set_level (old_level);
+  // intr_set_level (old_level);
 }
 
 /* Donate PRIORITY to T to prevent "priority inversion". */
 void
 donate (struct thread *t, int priority)
 {
-  struct thread *temp_thread;
   ASSERT (!intr_context ());
 
   if (t == NULL)
     return;
 
-  temp_thread = t;
+  struct thread *temp_thread = t;
 
   /* Handle nested priority. */
-  while (temp_thread)
+  while (temp_thread != NULL)
   {
+
     temp_thread->priority = priority;
+
+    if (temp_thread->status == THREAD_READY || temp_thread->status == THREAD_BLOCKED)
+        list_modify_ordered (&temp_thread->elem, &greater_priority, NULL);
+
     if (temp_thread->lock_waiting)
     {
+        if (temp_thread->lock_waiting->priority > priority)
+            break;
       temp_thread->lock_waiting->priority = priority;
+
       temp_thread = temp_thread->lock_waiting->holder;
     }
     else
-      temp_thread = NULL;   
+      temp_thread = NULL;
   }
 
-  if (t == thread_current () && !list_empty (&ready_list))
-  {
-        int next_priority = list_entry (list_front (&ready_list), struct thread,
-                                        elem)->priority;
-        if (next_priority > priority)
-            thread_yield ();
-  }
+  //preempt
+  if (t == thread_current ())
+    test_preempt ();
 }
 
 int
@@ -412,7 +412,6 @@ next_donated_priority (struct thread *t)
     new_priority = t->default_priority;
   else
   {
-    list_sort (&t->locks, lock_greater_priority, NULL);
     new_priority = list_entry (list_front (&t->locks),
                                struct lock, elem)->priority;
   }
@@ -561,23 +560,6 @@ alloc_frame (struct thread *t, size_t size)
   return t->stack;
 }
 
-/* Returns the next thread-to-be-scheduled's priority.  Should
-   find a thread from the run queue, unless the run queue is
-   empty.  (If the running thread can continue running, then it
-   will be in the run queue.)  If the run queue is empty, return
-   idle_thread's priority. */
-int
-next_thread_to_run_priority(void)
-{
-  if (list_empty (&ready_list))
-    return idle_thread->priority;
-  else
-  {
-    list_sort (&ready_list, greater_priority, NULL);
-    return list_entry (list_front (&ready_list), struct thread, elem)->priority;
-  }
-}
-
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
@@ -590,7 +572,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
   {
-    list_sort (&ready_list, greater_priority, NULL);
+    // list_sort (&ready_list, greater_priority, NULL);
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
   }
 }
@@ -701,8 +683,8 @@ void
 test_preempt (void)
 {
     enum intr_level old_level = intr_disable ();
-    if (!list_empty (&ready_list) && preempts (
-            list_entry (list_front (&ready_list), struct thread, elem)))
+    if (!list_empty (&ready_list) && preempts (list_entry (
+        list_front (&ready_list), struct thread, elem)))
         thread_yield ();
 
     intr_set_level (old_level);
