@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/fixed-point.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -88,18 +89,13 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int default_priority;               /* Default priority of a the thread; to be used in donation*/
-    struct list locks;                  /* List of all locks held by thread. locks are added to this
-                                           list when they are first acquire and removed when they are
-                                           released. */
-    struct lock *lock_waiting;          /* Poniter to the lock which thread is waiting on. */
 
-    /* Additional struct member identifying ticks till thread unblocks from sleep starting from OS
-       boot time, this member is set by timer_sleep() and checked by timer_interrupt() to decide to
-       unblock the thread. This member was added to avoid busy waiting in timer_sleep().
-    */
     int64_t sleep_ticks;                /* Ticks till thread unblocks from sleep
-                                           starting from OS boot time. */
+                                          starting from OS boot time. */
+
+    /* advanced scheduler */
+    int nice;                           /* nice value for the thread. */
+    fixed_float recent_cpu;
 
     struct list_elem allelem;           /* List element for all threads list. */
 
@@ -119,12 +115,6 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
-
-/* Donates priority to thread to prevent "priority inversion". */
-void donate (struct thread *, int);
-
-/* Returns the next priority to be assigned from THREAD. */
-int next_donated_priority (struct thread *);
 
 void thread_init (void);
 void thread_start (void);
@@ -163,18 +153,5 @@ int thread_get_load_avg (void);
 bool less_sleep (const struct list_elem *a,
                  const struct list_elem *b,
                  void *aux);
-
-/* Compares the priority of two threads list elements A and B, given
-   auxiliary data AUX.  Returns true if A has greater(or equal) priority
-   than B, or false if A has less priority than B. */
-bool greater_priority (const struct list_elem *a,
-                       const struct list_elem *b,
-                       void *aux);
-
-/* Returns true if a thread should preempt the currently running thread
-if it gets added to ready queue. */
-bool preempts (const struct thread *t);
-
-void test_preempt (void);
 
 #endif /* threads/thread.h */
