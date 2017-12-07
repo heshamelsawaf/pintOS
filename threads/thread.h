@@ -89,6 +89,11 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int default_priority;               /* Default priority of a the thread; to be used in donation*/
+    struct list locks;                  /* List of all locks held by thread. locks are added to this
+                                           list when they are first acquire and removed when they are
+                                           released. */
+    struct lock *lock_waiting;          /* Poniter to the lock which thread is waiting on. */
 
     int64_t sleep_ticks;                /* Ticks till thread unblocks from sleep
                                           starting from OS boot time. */
@@ -147,11 +152,31 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+/* Donation functions. */
+void donate (struct thread *, int);
+int next_donated_priority (struct thread *);
+
 /* Compares the sleep time of two threads list elements A and B, given
    auxiliary data AUX.  Returns true if A has less sleep time than B, or
    false if A has greater sleep time than or equal to B. */
 bool less_sleep (const struct list_elem *a,
                  const struct list_elem *b,
                  void *aux);
+
+/* Compares the priority of two threads list elements A and B, given
+   auxiliary data AUX.  Returns true if A has greater(or equal) priority
+   than B, or false if A has less priority than B. */
+bool greater_priority (const struct list_elem *a,
+                       const struct list_elem *b,
+                       void *aux);
+
+/* Returns true if a thread should preempt the currently running thread
+if it gets added to ready queue. */
+bool preempts (const struct thread *t);
+
+/* Tries to preempt the running thread, succeeds if 'preempts ()' returns true, or does
+nothing otherwise. */
+void test_preempt (void);
+
 
 #endif /* threads/thread.h */
