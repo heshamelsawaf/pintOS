@@ -5,13 +5,11 @@
 #include <stdbool.h>
 
 /* A counting semaphore. */
-struct semaphore {
-  unsigned value;             /* Current value. */
-  int64_t priority;           /* Priority of semaphore, used in condition variables
-                                to determine which semaphore should sema_up () next
-                                based on priority of waiting thread. */
-  struct list waiters;        /* List of waiting threads. */
-};
+struct semaphore
+  {
+    unsigned value;             /* Current value. */
+    struct list waiters;        /* List of waiting threads. */
+  };
 
 void sema_init (struct semaphore *, unsigned value);
 void sema_down (struct semaphore *);
