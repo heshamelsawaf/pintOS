@@ -87,18 +87,16 @@
 #include <stdint.h>
 
 /* List element. */
-struct list_elem
-  {
-    struct list_elem *prev;     /* Previous list element. */
-    struct list_elem *next;     /* Next list element. */
-  };
+struct list_elem {
+  struct list_elem *prev;     /* Previous list element. */
+  struct list_elem *next;     /* Next list element. */
+};
 
 /* List. */
-struct list
-  {
-    struct list_elem head;      /* List head. */
-    struct list_elem tail;      /* List tail. */
-  };
+struct list {
+  struct list_elem head;      /* List head. */
+  struct list_elem tail;      /* List tail. */
+};
 
 /* Converts pointer to list element LIST_ELEM into a pointer to
    the structure that LIST_ELEM is embedded inside.  Supply the
@@ -158,7 +156,7 @@ bool list_empty (struct list *);
 
 /* Miscellaneous. */
 void list_reverse (struct list *);
-
+
 /* Compares the value of two list elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
    false if A is greater than or equal to B. */

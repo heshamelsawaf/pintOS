@@ -73,12 +73,12 @@ static void locate_block_device (enum block_type, const char *name);
 int main (void) NO_RETURN;
 
 /* Pintos main program. */
-int
-main (void)
+                int
+                main (void)
 {
   char **argv;
 
-  /* Clear BSS. */  
+  /* Clear BSS. */
   bss_init ();
 
   /* Break command line into arguments and parse options. */
@@ -88,7 +88,7 @@ main (void)
   /* Initialize ourselves as a thread so we can use locks,
      then enable console locking. */
   thread_init ();
-  console_init ();  
+  console_init ();
 
   /* Greet user. */
   printf ("Pintos booting with %'"PRIu32" kB RAM...\n",
@@ -128,7 +128,7 @@ main (void)
 #endif
 
   printf ("Boot complete.\n");
-  
+
   /* Run actions specified on kernel command line. */
   run_actions (argv);
 
@@ -136,7 +136,7 @@ main (void)
   shutdown ();
   thread_exit ();
 }
-
+
 /* Clear the "BSS", a segment that should be initialized to
    zeros.  It isn't actually stored on disk or zeroed by the
    kernel loader, so we have to zero it ourselves.
@@ -144,7 +144,7 @@ main (void)
    The start and end of the BSS segment is recorded by the
    linker as _start_bss and _end_bss.  See kernel.lds. */
 static void
-bss_init (void) 
+bss_init (void)
 {
   extern char _start_bss, _end_bss;
   memset (&_start_bss, 0, &_end_bss - &_start_bss);
@@ -191,7 +191,7 @@ paging_init (void)
 /* Breaks the kernel command line into words and returns them as
    an argv-like array. */
 static char **
-read_command_line (void) 
+read_command_line (void)
 {
   static char *argv[LOADER_ARGS_LEN / 2 + 1];
   char *p, *end;
@@ -201,7 +201,7 @@ read_command_line (void)
   argc = *(uint32_t *) ptov (LOADER_ARG_CNT);
   p = ptov (LOADER_ARGS);
   end = p + LOADER_ARGS_LEN;
-  for (i = 0; i < argc; i++) 
+  for (i = 0; i < argc; i++)
     {
       if (p >= end)
         PANIC ("command line arguments overflow");
@@ -226,14 +226,14 @@ read_command_line (void)
 /* Parses options in ARGV[]
    and returns the first non-option argument. */
 static char **
-parse_options (char **argv) 
+parse_options (char **argv)
 {
   for (; *argv != NULL && **argv == '-'; argv++)
     {
       char *save_ptr;
       char *name = strtok_r (*argv, "=", &save_ptr);
       char *value = strtok_r (NULL, "", &save_ptr);
-      
+
       if (!strcmp (name, "-h"))
         usage ();
       else if (!strcmp (name, "-q"))
@@ -241,15 +241,15 @@ parse_options (char **argv)
       else if (!strcmp (name, "-r"))
         shutdown_configure (SHUTDOWN_REBOOT);
 #ifdef FILESYS
-      else if (!strcmp (name, "-f"))
-        format_filesys = true;
-      else if (!strcmp (name, "-filesys"))
-        filesys_bdev_name = value;
-      else if (!strcmp (name, "-scratch"))
-        scratch_bdev_name = value;
+        else if (!strcmp (name, "-f"))
+          format_filesys = true;
+        else if (!strcmp (name, "-filesys"))
+          filesys_bdev_name = value;
+        else if (!strcmp (name, "-scratch"))
+          scratch_bdev_name = value;
 #ifdef VM
-      else if (!strcmp (name, "-swap"))
-        swap_bdev_name = value;
+        else if (!strcmp (name, "-swap"))
+          swap_bdev_name = value;
 #endif
 #endif
       else if (!strcmp (name, "-rs"))
@@ -257,8 +257,8 @@ parse_options (char **argv)
       else if (!strcmp (name, "-mlfqs"))
         thread_mlfqs = true;
 #ifdef USERPROG
-      else if (!strcmp (name, "-ul"))
-        user_page_limit = atoi (value);
+        else if (!strcmp (name, "-ul"))
+          user_page_limit = atoi (value);
 #endif
       else
         PANIC ("unknown option `%s' (use -h for help)", name);
@@ -273,7 +273,7 @@ parse_options (char **argv)
      for reproducibility.  To fix this, give the "-r" option to
      the pintos script to request real-time execution. */
   random_init (rtc_get_time ());
-  
+
   return argv;
 }
 
@@ -282,7 +282,7 @@ static void
 run_task (char **argv)
 {
   const char *task = argv[1];
-  
+
   printf ("Executing '%s':\n", task);
 #ifdef USERPROG
   process_wait (process_execute (task));
@@ -295,26 +295,25 @@ run_task (char **argv)
 /* Executes all of the actions specified in ARGV[]
    up to the null pointer sentinel. */
 static void
-run_actions (char **argv) 
+run_actions (char **argv)
 {
   /* An action. */
-  struct action 
-    {
-      char *name;                       /* Action name. */
-      int argc;                         /* # of args, including action name. */
-      void (*function) (char **argv);   /* Function to execute action. */
-    };
+  struct action {
+    char *name;                       /* Action name. */
+    int argc;                         /* # of args, including action name. */
+    void (*function) (char **argv);   /* Function to execute action. */
+  };
 
   /* Table of supported actions. */
-  static const struct action actions[] = 
+  static const struct action actions[] =
     {
       {"run", 2, run_task},
 #ifdef FILESYS
-      {"ls", 1, fsutil_ls},
-      {"cat", 2, fsutil_cat},
-      {"rm", 2, fsutil_rm},
-      {"extract", 1, fsutil_extract},
-      {"append", 2, fsutil_append},
+    {"ls", 1, fsutil_ls},
+    {"cat", 2, fsutil_cat},
+    {"rm", 2, fsutil_rm},
+    {"extract", 1, fsutil_extract},
+    {"append", 2, fsutil_append},
 #endif
       {NULL, 0, NULL},
     };
@@ -325,7 +324,7 @@ run_actions (char **argv)
       int i;
 
       /* Find action name. */
-      for (a = actions; ; a++)
+      for (a = actions;; a++)
         if (a->name == NULL)
           PANIC ("unknown action `%s' (use -h for help)", *argv);
         else if (!strcmp (*argv, a->name))
@@ -340,7 +339,7 @@ run_actions (char **argv)
       a->function (argv);
       argv += a->argc;
     }
-  
+
 }
 
 /* Prints a kernel command line help message and powers off the
@@ -349,13 +348,13 @@ static void
 usage (void)
 {
   printf ("\nCommand line syntax: [OPTION...] [ACTION...]\n"
-          "Options must precede actions.\n"
-          "Actions are executed in the order specified.\n"
-          "\nAvailable actions:\n"
+            "Options must precede actions.\n"
+            "Actions are executed in the order specified.\n"
+            "\nAvailable actions:\n"
 #ifdef USERPROG
-          "  run 'PROG [ARG...]' Run PROG and wait for it to complete.\n"
+            "  run 'PROG [ARG...]' Run PROG and wait for it to complete.\n"
 #else
-          "  run TEST           Run TEST.\n"
+            "  run TEST           Run TEST.\n"
 #endif
 #ifdef FILESYS
           "  ls                 List files in the root directory.\n"
@@ -365,10 +364,10 @@ usage (void)
           "  extract            Untar from scratch device into file system.\n"
           "  append FILE        Append FILE to tar file on scratch device.\n"
 #endif
-          "\nOptions:\n"
-          "  -h                 Print this help message and power off.\n"
-          "  -q                 Power off VM after actions or on panic.\n"
-          "  -r                 Reboot after actions.\n"
+            "\nOptions:\n"
+            "  -h                 Print this help message and power off.\n"
+            "  -q                 Power off VM after actions or on panic.\n"
+            "  -r                 Reboot after actions.\n"
 #ifdef FILESYS
           "  -f                 Format file system device during startup.\n"
           "  -filesys=BDEV      Use BDEV for file system instead of default.\n"
@@ -377,12 +376,12 @@ usage (void)
           "  -swap=BDEV         Use BDEV for swap instead of default.\n"
 #endif
 #endif
-          "  -rs=SEED           Set random number seed to SEED.\n"
-          "  -mlfqs             Use multi-level feedback queue scheduler.\n"
+            "  -rs=SEED           Set random number seed to SEED.\n"
+            "  -mlfqs             Use multi-level feedback queue scheduler.\n"
 #ifdef USERPROG
-          "  -ul=COUNT          Limit user memory to COUNT pages.\n"
+    "  -ul=COUNT          Limit user memory to COUNT pages.\n"
 #endif
-          );
+  );
   shutdown_power_off ();
 }
 

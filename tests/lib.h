@@ -9,8 +9,11 @@
 extern const char *test_name;
 extern bool quiet;
 
-void msg (const char *, ...) PRINTF_FORMAT (1, 2);
-void fail (const char *, ...) PRINTF_FORMAT (1, 2) NO_RETURN;
+void msg (const char *, ...)
+PRINTF_FORMAT (1, 2);
+void fail (const char *, ...)
+PRINTF_FORMAT (1, 2)
+NO_RETURN;
 
 /* Takes an expression to test for SUCCESS and a message, which
    may include printf-style arguments.  Logs the message, then

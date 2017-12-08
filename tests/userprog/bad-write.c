@@ -5,8 +5,8 @@
 #include "tests/main.h"
 
 void
-test_main (void) 
+test_main (void)
 {
-  *(int *)NULL = 42;
+  *(int *) NULL = 42;
   fail ("should have exited with -1");
 }

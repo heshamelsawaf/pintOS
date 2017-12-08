@@ -52,20 +52,18 @@ gdt_init (void)
   asm volatile ("lgdt %0" : : "m" (gdtr_operand));
   asm volatile ("ltr %w0" : : "q" (SEL_TSS));
 }
-
+
 /* System segment or code/data segment? */
-enum seg_class
-  {
-    CLS_SYSTEM = 0,             /* System segment. */
-    CLS_CODE_DATA = 1           /* Code or data segment. */
-  };
+enum seg_class {
+  CLS_SYSTEM = 0,             /* System segment. */
+  CLS_CODE_DATA = 1           /* Code or data segment. */
+};
 
 /* Limit has byte or 4 kB page granularity? */
-enum seg_granularity
-  {
-    GRAN_BYTE = 0,              /* Limit has 1-byte granularity. */
-    GRAN_PAGE = 1               /* Limit has 4 kB granularity. */
-  };
+enum seg_granularity {
+  GRAN_BYTE = 0,              /* Limit has 1-byte granularity. */
+  GRAN_PAGE = 1               /* Limit has 4 kB granularity. */
+};
 
 /* Returns a segment descriptor with the given 32-bit BASE and
    20-bit LIMIT (whose interpretation depends on GRANULARITY).
@@ -136,11 +134,11 @@ make_tss_desc (void *laddr)
   return make_seg_desc ((uint32_t) laddr, 0x67, CLS_SYSTEM, 9, 0, GRAN_BYTE);
 }
 
-
 /* Returns a descriptor that yields the given LIMIT and BASE when
    used as an operand for the LGDT instruction. */
 static uint64_t
 make_gdtr_operand (uint16_t limit, void *base)
 {
-  return limit | ((uint64_t) (uint32_t) base << 16);
+  return limit | ((uint64_t) (uint32_t)
+  base << 16);
 }

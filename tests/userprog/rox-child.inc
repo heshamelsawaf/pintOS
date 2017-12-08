@@ -5,9 +5,10 @@
 #include "tests/main.h"
 
 void
-test_main (void) 
+test_main (void)
 {
-  const char *child_cmd = "child-rox " CHILD_CNT;
+  const char *child_cmd = "child-rox "
+  CHILD_CNT;
   int handle;
   pid_t child;
   char buffer[16];

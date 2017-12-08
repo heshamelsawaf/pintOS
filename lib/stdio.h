@@ -16,10 +16,14 @@
 #define STDOUT_FILENO 1
 
 /* Standard functions. */
-int printf (const char *, ...) PRINTF_FORMAT (1, 2);
-int snprintf (char *, size_t, const char *, ...) PRINTF_FORMAT (3, 4);
-int vprintf (const char *, va_list) PRINTF_FORMAT (1, 0);
-int vsnprintf (char *, size_t, const char *, va_list) PRINTF_FORMAT (3, 0);
+int printf (const char *, ...)
+PRINTF_FORMAT (1, 2);
+int snprintf (char *, size_t, const char *, ...)
+PRINTF_FORMAT (3, 4);
+int vprintf (const char *, va_list)
+PRINTF_FORMAT (1, 0);
+int vsnprintf (char *, size_t, const char *, va_list)
+PRINTF_FORMAT (3, 0);
 int putchar (int);
 int puts (const char *);
 

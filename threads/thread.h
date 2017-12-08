@@ -7,13 +7,12 @@
 #include "threads/fixed-point.h"
 
 /* States in a thread's life cycle. */
-enum thread_status
-  {
-    THREAD_RUNNING,     /* Running thread. */
-    THREAD_READY,       /* Not running but ready to run. */
-    THREAD_BLOCKED,     /* Waiting for an event to trigger. */
-    THREAD_DYING        /* About to be destroyed. */
-  };
+enum thread_status {
+  THREAD_RUNNING,     /* Running thread. */
+  THREAD_READY,       /* Not running but ready to run. */
+  THREAD_BLOCKED,     /* Waiting for an event to trigger. */
+  THREAD_DYING        /* About to be destroyed. */
+};
 
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
@@ -81,40 +80,39 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
-struct thread
-  {
-    /* Owned by thread.c. */
-    tid_t tid;                          /* Thread identifier. */
-    enum thread_status status;          /* Thread state. */
-    char name[16];                      /* Name (for debugging purposes). */
-    uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
-    int default_priority;               /* Default priority of a the thread; to be used in donation*/
-    struct list locks;                  /* List of all locks held by thread. locks are added to this
+struct thread {
+  /* Owned by thread.c. */
+  tid_t tid;                          /* Thread identifier. */
+  enum thread_status status;          /* Thread state. */
+  char name[16];                      /* Name (for debugging purposes). */
+  uint8_t *stack;                     /* Saved stack pointer. */
+  int priority;                       /* Priority. */
+  int default_priority;               /* Default priority of a the thread; to be used in donation*/
+  struct list locks;                  /* List of all locks held by thread. locks are added to this
                                            list when they are first acquire and removed when they are
                                            released. */
-    struct lock *lock_waiting;          /* Poniter to the lock which thread is waiting on. */
+  struct lock *lock_waiting;          /* Poniter to the lock which thread is waiting on. */
 
-    int64_t sleep_ticks;                /* Ticks till thread unblocks from sleep
+  int64_t sleep_ticks;                /* Ticks till thread unblocks from sleep
                                           starting from OS boot time. */
 
-    /* advanced scheduler */
-    int nice;                           /* nice value for the thread. */
-    fixed_float recent_cpu;
+  /* advanced scheduler */
+  int nice;                           /* nice value for the thread. */
+  fixed_float recent_cpu;
 
-    struct list_elem allelem;           /* List element for all threads list. */
+  struct list_elem allelem;           /* List element for all threads list. */
 
-    /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+  /* Shared between thread.c and synch.c. */
+  struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
-    /* Owned by userprog/process.c. */
-    uint32_t *pagedir;                  /* Page directory. */
+  /* Owned by userprog/process.c. */
+  uint32_t *pagedir;                  /* Page directory. */
 #endif
 
-    /* Owned by thread.c. */
-    unsigned magic;                     /* Detects stack overflow. */
-  };
+  /* Owned by thread.c. */
+  unsigned magic;                     /* Detects stack overflow. */
+};
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -138,11 +136,12 @@ tid_t thread_tid (void);
 const char *thread_name (void);
 
 void thread_exit (void) NO_RETURN;
-void thread_yield (void);
+                        void thread_yield (void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
-typedef void thread_action_func (struct thread *t, void *aux);
-void thread_foreach (thread_action_func *, void *);
+                        typedef void thread_action_func (struct thread *t, void *aux);
+                        void thread_foreach (thread_action_func *, void *
+);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
@@ -177,6 +176,5 @@ bool preempts (const struct thread *t);
 /* Tries to preempt the running thread, succeeds if 'preempts ()' returns true, or does
 nothing otherwise. */
 void test_preempt (void);
-
 
 #endif /* threads/thread.h */

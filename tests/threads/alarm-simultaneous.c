@@ -19,12 +19,11 @@ test_alarm_simultaneous (void)
 }
 
 /* Information about the test. */
-struct sleep_test
-  {
-    int64_t start;              /* Current time at start of test. */
-    int iterations;             /* Number of iterations per thread. */
-    int *output_pos;            /* Current position in output buffer. */
-  };
+struct sleep_test {
+  int64_t start;              /* Current time at start of test. */
+  int iterations;             /* Number of iterations per thread. */
+  int *output_pos;            /* Current position in output buffer. */
+};
 
 static void sleeper (void *);
 

@@ -25,7 +25,7 @@ static thread_func b_thread_func;
 static thread_func c_thread_func;
 
 void
-test_priority_donate_multiple2 (void) 
+test_priority_donate_multiple2 (void)
 {
   struct lock a, b;
 
@@ -62,7 +62,7 @@ test_priority_donate_multiple2 (void)
 }
 
 static void
-a_thread_func (void *lock_) 
+a_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 
@@ -73,7 +73,7 @@ a_thread_func (void *lock_)
 }
 
 static void
-b_thread_func (void *lock_) 
+b_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 
@@ -84,7 +84,7 @@ b_thread_func (void *lock_)
 }
 
 static void
-c_thread_func (void *a_ UNUSED) 
+c_thread_func (void *a_ UNUSED)
 {
   msg ("Thread c finished.");
 }
