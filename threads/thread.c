@@ -200,17 +200,22 @@ thread_tick (void)
       /* recalculate every recent_cpu value */
       if (timer_ticks () % TIMER_FREQ == 0)
         {
-          //printf("UPDATE LOAD AVG\n");
           update_load_avg ();
           thread_foreach (calculate_recent_cpu_advanced, NULL);
+
+          /* update priority for each thread then sort the list and yiels on return */
+          thread_foreach(calculate_priority_advanced, NULL);
+          list_sort (&ready_list, greater_priority, NULL);
+
+          intr_yield_on_return ();
         }
 
       /* advanced scheduler */
-      /* recalculate every priority */
-      if (timer_ticks () % 4 == 0)
+      /* recalculate running thread every 4 ticks*/
+      if (timer_ticks () % TIME_SLICE == 0)
         {
-          thread_foreach (calculate_priority_advanced, NULL);
-          list_sort (&ready_list, greater_priority, NULL);
+          calculate_priority_advanced (thread_current (), NULL);
+          /* this must called becouse one of the unblocked threads may have higher priority */
           intr_yield_on_return ();
         }
     }
@@ -510,7 +515,7 @@ next_donated_priority (struct thread *t)
   else
     {
       new_priority = list_entry (list_front (&t->locks),
-      struct lock, elem)->priority;
+                                 struct lock, elem)->priority;
     }
   return new_priority;
 }

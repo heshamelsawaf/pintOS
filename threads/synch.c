@@ -293,7 +293,7 @@ lock_release_priority (struct lock *lock)
 
   if (!list_empty (&lock->semaphore.waiters))
     lock->priority = list_entry (list_front (&lock->semaphore.waiters),
-  struct thread, elem)->priority;
+                                             struct thread, elem)->priority;
   else
   lock->priority = -1;
   list_remove (&lock->elem);
