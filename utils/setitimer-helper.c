@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 int
-main (int argc, char *argv[]) 
+main (int argc, char *argv[])
 {
   const char *program_name = argv[0];
   double timeout;
@@ -17,10 +17,10 @@ main (int argc, char *argv[])
     {
       fprintf (stderr,
                "setitimer-helper: runs a program with a virtual CPU limit\n"
-               "usage: %s TIMEOUT PROGRAM [ARG...]\n"
-               "  where TIMEOUT is the virtual CPU limit, in seconds,\n"
-               "    and remaining arguments specify the program to run\n"
-               "    and its argument.\n",
+                 "usage: %s TIMEOUT PROGRAM [ARG...]\n"
+                 "  where TIMEOUT is the virtual CPU limit, in seconds,\n"
+                 "    and remaining arguments specify the program to run\n"
+                 "    and its argument.\n",
                program_name);
       return EXIT_FAILURE;
     }
@@ -41,7 +41,7 @@ main (int argc, char *argv[])
   else
     fprintf (stderr, "%s: invalid timeout value \"%s\"\n",
              program_name, argv[1]);
-  
+
   execvp (argv[2], &argv[2]);
   fprintf (stderr, "%s: couldn't exec \"%s\": %s\n",
            program_name, argv[2], strerror (errno));

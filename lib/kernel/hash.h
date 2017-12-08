@@ -26,10 +26,9 @@
 #include "list.h"
 
 /* Hash element. */
-struct hash_elem 
-  {
-    struct list_elem list_elem;
-  };
+struct hash_elem {
+  struct list_elem list_elem;
+};
 
 /* Converts pointer to hash element HASH_ELEM into a pointer to
    the structure that HASH_ELEM is embedded inside.  Supply the
@@ -56,23 +55,21 @@ typedef bool hash_less_func (const struct hash_elem *a,
 typedef void hash_action_func (struct hash_elem *e, void *aux);
 
 /* Hash table. */
-struct hash 
-  {
-    size_t elem_cnt;            /* Number of elements in table. */
-    size_t bucket_cnt;          /* Number of buckets, a power of 2. */
-    struct list *buckets;       /* Array of `bucket_cnt' lists. */
-    hash_hash_func *hash;       /* Hash function. */
-    hash_less_func *less;       /* Comparison function. */
-    void *aux;                  /* Auxiliary data for `hash' and `less'. */
-  };
+struct hash {
+  size_t elem_cnt;            /* Number of elements in table. */
+  size_t bucket_cnt;          /* Number of buckets, a power of 2. */
+  struct list *buckets;       /* Array of `bucket_cnt' lists. */
+  hash_hash_func *hash;       /* Hash function. */
+  hash_less_func *less;       /* Comparison function. */
+  void *aux;                  /* Auxiliary data for `hash' and `less'. */
+};
 
 /* A hash table iterator. */
-struct hash_iterator 
-  {
-    struct hash *hash;          /* The hash table. */
-    struct list *bucket;        /* Current bucket. */
-    struct hash_elem *elem;     /* Current hash element in current bucket. */
-  };
+struct hash_iterator {
+  struct hash *hash;          /* The hash table. */
+  struct list *bucket;        /* Current bucket. */
+  struct hash_elem *elem;     /* Current hash element in current bucket. */
+};
 
 /* Basic life cycle. */
 bool hash_init (struct hash *, hash_hash_func *, hash_less_func *, void *aux);

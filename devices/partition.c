@@ -7,11 +7,10 @@
 #include "threads/malloc.h"
 
 /* A partition of a block device. */
-struct partition
-  {
-    struct block *block;                /* Underlying block device. */
-    block_sector_t start;               /* First sector within device. */
-  };
+struct partition {
+  struct block *block;                /* Underlying block device. */
+  block_sector_t start;               /* First sector within device. */
+};
 
 static struct block_operations partition_operations;
 
@@ -52,25 +51,23 @@ read_partition_table (struct block *block, block_sector_t sector,
                       int *part_nr)
 {
   /* Format of a partition table entry.  See [Partitions]. */
-  struct partition_table_entry
-    {
-      uint8_t bootable;         /* 0x00=not bootable, 0x80=bootable. */
-      uint8_t start_chs[3];     /* Encoded starting cylinder, head, sector. */
-      uint8_t type;             /* Partition type (see partition_type_name). */
-      uint8_t end_chs[3];       /* Encoded ending cylinder, head, sector. */
-      uint32_t offset;          /* Start sector offset from partition table. */
-      uint32_t size;            /* Number of sectors. */
-    }
-  PACKED;
+  struct partition_table_entry {
+    uint8_t bootable;         /* 0x00=not bootable, 0x80=bootable. */
+    uint8_t start_chs[3];     /* Encoded starting cylinder, head, sector. */
+    uint8_t type;             /* Partition type (see partition_type_name). */
+    uint8_t end_chs[3];       /* Encoded ending cylinder, head, sector. */
+    uint32_t offset;          /* Start sector offset from partition table. */
+    uint32_t size;            /* Number of sectors. */
+  }
+    PACKED;
 
   /* Partition table sector. */
-  struct partition_table
-    {
-      uint8_t loader[446];      /* Loader, in top-level partition table. */
-      struct partition_table_entry partitions[4];       /* Table entries. */
-      uint16_t signature;       /* Should be 0xaa55. */
-    }
-  PACKED;
+  struct partition_table {
+    uint8_t loader[446];      /* Loader, in top-level partition table. */
+    struct partition_table_entry partitions[4];       /* Table entries. */
+    uint16_t signature;       /* Should be 0xaa55. */
+  }
+    PACKED;
 
   struct partition_table *pt;
   size_t i;
@@ -78,8 +75,10 @@ read_partition_table (struct block *block, block_sector_t sector,
   /* Check SECTOR validity. */
   if (sector >= block_size (block))
     {
-      printf ("%s: Partition table at sector %"PRDSNu" past end of device.\n",
-              block_name (block), sector);
+      printf ("%s: Partition table at sector %"
+      PRDSNu
+      " past end of device.\n",
+        block_name (block), sector);
       return;
     }
 
@@ -96,8 +95,10 @@ read_partition_table (struct block *block, block_sector_t sector,
       if (primary_extended_sector == 0)
         printf ("%s: Invalid partition table signature\n", block_name (block));
       else
-        printf ("%s: Invalid extended partition table in sector %"PRDSNu"\n",
-                block_name (block), sector);
+        printf ("%s: Invalid extended partition table in sector %"
+      PRDSNu
+      "\n",
+        block_name (block), sector);
       free (pt);
       return;
     }
@@ -116,8 +117,10 @@ read_partition_table (struct block *block, block_sector_t sector,
                || e->type == 0x85    /* Linux extended partition. */
                || e->type == 0xc5)   /* DR-DOS extended partition. */
         {
-          printf ("%s: Extended partition in sector %"PRDSNu"\n",
-                  block_name (block), sector);
+          printf ("%s: Extended partition in sector %"
+          PRDSNu
+          "\n",
+            block_name (block), sector);
 
           /* The interpretation of the offset field for extended
              partitions is bizarre.  When the extended partition
@@ -156,33 +159,39 @@ found_partition (struct block *block, uint8_t part_type,
                  int part_nr)
 {
   if (start >= block_size (block))
-    printf ("%s%d: Partition starts past end of device (sector %"PRDSNu")\n",
-            block_name (block), part_nr, start);
+    printf ("%s%d: Partition starts past end of device (sector %"
+  PRDSNu
+  ")\n",
+    block_name (block), part_nr, start);
   else if (start + size < start || start + size > block_size (block))
-    printf ("%s%d: Partition end (%"PRDSNu") past end of device (%"PRDSNu")\n",
-            block_name (block), part_nr, start + size, block_size (block));
+    printf ("%s%d: Partition end (%"
+  PRDSNu
+  ") past end of device (%"
+  PRDSNu
+  ")\n",
+    block_name (block), part_nr, start + size, block_size (block));
   else
-    {
-      enum block_type type = (part_type == 0x20 ? BLOCK_KERNEL
-                              : part_type == 0x21 ? BLOCK_FILESYS
-                              : part_type == 0x22 ? BLOCK_SCRATCH
-                              : part_type == 0x23 ? BLOCK_SWAP
-                              : BLOCK_FOREIGN);
-      struct partition *p;
-      char extra_info[128];
-      char name[16];
+  {
+    enum block_type type = (part_type == 0x20 ? BLOCK_KERNEL
+                                              : part_type == 0x21 ? BLOCK_FILESYS
+                                                                  : part_type == 0x22 ? BLOCK_SCRATCH
+                                                                                      : part_type == 0x23 ? BLOCK_SWAP
+                                                                                                          : BLOCK_FOREIGN);
+    struct partition *p;
+    char extra_info[128];
+    char name[16];
 
-      p = malloc (sizeof *p);
-      if (p == NULL)
-        PANIC ("Failed to allocate memory for partition descriptor");
-      p->block = block;
-      p->start = start;
+    p = malloc (sizeof *p);
+    if (p == NULL)
+      PANIC ("Failed to allocate memory for partition descriptor");
+    p->block = block;
+    p->start = start;
 
-      snprintf (name, sizeof name, "%s%d", block_name (block), part_nr);
-      snprintf (extra_info, sizeof extra_info, "%s (%02x)",
-                partition_type_name (part_type), part_type);
-      block_register (name, type, extra_info, size, &partition_operations, p);
-    }
+    snprintf (name, sizeof name, "%s%d", block_name (block), part_nr);
+    snprintf (extra_info, sizeof extra_info, "%s (%02x)",
+              partition_type_name (part_type), part_type);
+    block_register (name, type, extra_info, size, &partition_operations, p);
+  }
 }
 
 /* Returns a human-readable name for the given partition TYPE. */

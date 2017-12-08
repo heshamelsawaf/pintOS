@@ -14,7 +14,7 @@
 #include "tests/main.h"
 
 void
-test_main (void) 
+test_main (void)
 {
   int i;
 
@@ -22,7 +22,7 @@ test_main (void)
   quiet = true;
   CHECK (mkdir ("start"), "mkdir \"start\"");
   CHECK (chdir ("start"), "chdir \"start\"");
-  for (i = 0; ; i++) 
+  for (i = 0;; i++)
     {
       char name[3][READDIR_MAX_LEN + 1];
       char file_name[16], dir_name[16];
@@ -35,20 +35,20 @@ test_main (void)
         break;
       CHECK ((fd = open (file_name)) > 1, "open \"%s\"", file_name);
       snprintf (contents, sizeof contents, "contents %d\n", i);
-      if (write (fd, contents, strlen (contents)) != (int) strlen (contents)) 
+      if (write (fd, contents, strlen (contents)) != (int) strlen (contents))
         {
           CHECK (remove (file_name), "remove \"%s\"", file_name);
           close (fd);
           break;
         }
       close (fd);
-      
+
       /* Create directory. */
       snprintf (dir_name, sizeof dir_name, "dir%d", i);
-      if (!mkdir (dir_name)) 
+      if (!mkdir (dir_name))
         {
           CHECK (remove (file_name), "remove \"%s\"", file_name);
-          break; 
+          break;
         }
 
       /* Check for file and directory. */
@@ -59,7 +59,7 @@ test_main (void)
       CHECK ((!strcmp (name[0], dir_name) && !strcmp (name[1], file_name))
              || (!strcmp (name[1], dir_name) && !strcmp (name[0], file_name)),
              "names should be \"%s\" and \"%s\", "
-             "actually \"%s\" and \"%s\"",
+               "actually \"%s\" and \"%s\"",
              file_name, dir_name, name[0], name[1]);
       close (fd);
 
@@ -71,7 +71,7 @@ test_main (void)
 
   msg ("removing all but top 10 levels of files and directories...");
   quiet = true;
-  while (i-- > 10) 
+  while (i-- > 10)
     {
       char file_name[16], dir_name[16];
 

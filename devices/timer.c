@@ -41,7 +41,7 @@ timer_init (void)
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 
-  list_init(&thread_sleep_list);
+  list_init (&thread_sleep_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -99,7 +99,7 @@ timer_sleep (int64_t ticks)
 
   /* Set 'timer_sleep' for current thread. */
   struct thread *t = thread_current ();
-  t->sleep_ticks = timer_ticks() + ticks;
+  t->sleep_ticks = timer_ticks () + ticks;
 
   /* Disable interrupts to make insertion to sleeping thread list and blocking run atomically. */
   enum intr_level old_level = intr_disable ();
@@ -183,7 +183,7 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
@@ -193,24 +193,25 @@ timer_interrupt (struct intr_frame *args UNUSED)
 
   /* Iterate over all sleeping threads, unblock every thread which finishes sleeping
      for the given duration and remove it out of sleeping threads list. */
-  struct list_elem *e = list_begin(&thread_sleep_list);
+  struct list_elem *e = list_begin (&thread_sleep_list);
   while (e != list_end (&thread_sleep_list))
     {
-        struct thread *t = list_entry (e, struct thread, elem);
+      struct thread *t = list_entry (e,
+      struct thread, elem);
 
-        /* Ignore all threads which have not finished sleeping yet. */
-        if (t->sleep_ticks > ticks)
-            break;
+      /* Ignore all threads which have not finished sleeping yet. */
+      if (t->sleep_ticks > ticks)
+        break;
 
-        e = list_next (e);
+      e = list_next (e);
 
-        /* Remove thread out of sleeping threads list. */
-        list_pop_front (&thread_sleep_list);
-        /* Unblock sleeping thread. */
-        thread_unblock (t);
-        /* Enforce preemption. */
-        if (preempts (t))
-            intr_yield_on_return ();
+      /* Remove thread out of sleeping threads list. */
+      list_pop_front (&thread_sleep_list);
+      /* Unblock sleeping thread. */
+      thread_unblock (t);
+      /* Enforce preemption. */
+      if (preempts (t))
+        intr_yield_on_return ();
     }
 }
 
@@ -241,7 +242,7 @@ too_many_loops (unsigned loops)
    differently in different places the results would be difficult
    to predict. */
 static void NO_INLINE
-busy_wait (int64_t loops)
+  busy_wait (int64_t loops)
 {
   while (loops-- > 0)
     barrier ();
