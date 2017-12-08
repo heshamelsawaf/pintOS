@@ -281,6 +281,14 @@ lock_release_vanilla (struct lock *lock)
   sema_up (&lock->semaphore);
 }
 
+/* Priority scheduling implementation of LOCK release, a lock holder
+successor is looked up and its' priority is assigned as the new lock priority.
+If not, then a lock holds its' default value(-1). It is then followed 'uping'
+the semaphore resulting in a complete relinquishing of the lock.
+Note that the thread may have at this moment a false priority(a donated one),
+and only after it relinquishs the lock that its' priority will be corrected.
+This part is not used by mlfq scheduler */
+
 void
 lock_release_priority (struct lock *lock)
 {
@@ -293,13 +301,12 @@ lock_release_priority (struct lock *lock)
 
   if (!list_empty (&lock->semaphore.waiters))
     lock->priority = list_entry (list_front (&lock->semaphore.waiters),
-                                             struct thread, elem)->priority;
+  struct thread, elem)->priority;
   else
   lock->priority = -1;
+
   list_remove (&lock->elem);
-
   sema_up (&lock->semaphore);
-
   curr = thread_current ();
   donate (curr, next_donated_priority (curr));
 
@@ -424,20 +431,22 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 bool
 sema_greater_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-    int curr_priority = thread_current ()->priority;
-    int sema_a_priority = curr_priority, sema_b_priority = curr_priority;
+  int curr_priority = thread_current ()->priority;
+  int sema_a_priority = curr_priority, sema_b_priority = curr_priority;
 
-    struct semaphore_elem *sema_a = list_entry (a, struct semaphore_elem, elem);
-    struct semaphore_elem *sema_b = list_entry (b, struct semaphore_elem, elem);
+  struct semaphore_elem *sema_a = list_entry (a,
+  struct semaphore_elem, elem);
+  struct semaphore_elem *sema_b = list_entry (b,
+  struct semaphore_elem, elem);
 
-    if (!list_empty (&sema_a->semaphore.waiters))
-        sema_a_priority = list_entry (list_front (&sema_a->semaphore.waiters),
-                                      struct thread, elem)->priority;
-    if (!list_empty (&sema_b->semaphore.waiters))
-        sema_b_priority = list_entry (list_front (&sema_b->semaphore.waiters),
-                                      struct thread, elem)->priority;
+  if (!list_empty (&sema_a->semaphore.waiters))
+    sema_a_priority = list_entry (list_front (&sema_a->semaphore.waiters),
+  struct thread, elem)->priority;
+  if (!list_empty (&sema_b->semaphore.waiters))
+    sema_b_priority = list_entry (list_front (&sema_b->semaphore.waiters),
+  struct thread, elem)->priority;
 
-    return sema_a_priority > sema_b_priority;
+  return sema_a_priority > sema_b_priority;
 }
 
 /* Returns true if lock A has greater priotity than lock B, false otherwise. */

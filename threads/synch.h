@@ -5,11 +5,10 @@
 #include <stdbool.h>
 
 /* A counting semaphore. */
-struct semaphore
-  {
-    unsigned value;             /* Current value. */
-    struct list waiters;        /* List of waiting threads. */
-  };
+struct semaphore {
+  unsigned value;             /* Current value. */
+  struct list waiters;        /* List of waiting threads. */
+};
 
 void sema_init (struct semaphore *, unsigned value);
 void sema_down (struct semaphore *);

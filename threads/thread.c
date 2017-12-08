@@ -204,7 +204,7 @@ thread_tick (void)
           thread_foreach (calculate_recent_cpu_advanced, NULL);
 
           /* update priority for each thread then sort the list and yiels on return */
-          thread_foreach(calculate_priority_advanced, NULL);
+          thread_foreach (calculate_priority_advanced, NULL);
           list_sort (&ready_list, greater_priority, NULL);
 
           intr_yield_on_return ();
@@ -465,7 +465,8 @@ thread_set_priority (int new_priority)
   intr_set_level (old_level);
 }
 
-/* Donate PRIORITY to T to prevent "priority inversion". */
+/* Donate PRIORITY to T to prevent "priority inversion".
+This function must not be called from an interrupt context. */
 void
 donate (struct thread *t, int priority)
 {
@@ -502,21 +503,22 @@ donate (struct thread *t, int priority)
     test_preempt ();
 }
 
+/* Selectes and returns the next priority that T shall donate.
+The next donated priority is T's default one if T possesses 
+no synchronization primitives(Locks specifically). If it does, then 
+the top most priority is selected and returned.
+*/
 int
 next_donated_priority (struct thread *t)
 {
   int new_priority;
-
-  if (t == NULL)
-    return;
+  ASSERT (t != NULL);
 
   if (list_empty (&t->locks))
     new_priority = t->default_priority;
   else
-    {
-      new_priority = list_entry (list_front (&t->locks),
-                                 struct lock, elem)->priority;
-    }
+    new_priority = list_entry (list_front (&t->locks),
+  struct lock, elem)->priority;
   return new_priority;
 }
 
@@ -791,6 +793,9 @@ greater_priority (const struct list_elem *a, const struct list_elem *b, void *au
   return thread_a->priority > thread_b->priority;
 }
 
+/* Runs a test on behalf of the scheduler, if the current thread
+is to be preempted, if so, it yield the cpu.
+*/
 void
 test_preempt (void)
 {

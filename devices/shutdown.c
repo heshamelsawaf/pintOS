@@ -99,7 +99,7 @@ shutdown_power_off (void)
 
   /* ACPI Shutdown sequence supported by Bochs and QEMU
      http://forum.osdev.org/viewtopic.php?t=16990  */
-  outb(0xf4, 0x00);
+  outb (0xf4, 0x00);
 
   /* This is a special power-off sequence supported by Bochs and
      QEMU, but not by physical hardware. */
