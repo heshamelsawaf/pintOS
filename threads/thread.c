@@ -523,6 +523,14 @@ void
 thread_set_nice (int nice)
 {
   thread_current ()->nice = nice;
+
+  enum intr_level old_level = intr_disable ();
+
+  /* Calculate new priority then yeild. */
+  calculate_priority_advanced (thread_current (), NULL);
+  thread_yield ();
+
+  intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */

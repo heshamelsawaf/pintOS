@@ -379,7 +379,6 @@ cond_wait (struct condition *cond, struct lock *lock)
 
   sema_init (&waiter.semaphore, 0);
 
-  waiter.semaphore.priority = thread_current ()->priority;
   list_insert_ordered (&cond->waiters, &waiter.elem, sema_greater_priority, NULL);
 
   lock_release (lock);
@@ -427,10 +426,20 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 bool
 sema_greater_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
+    int curr_priority = thread_current ()->priority;
+    int sema_a_priority = curr_priority, sema_b_priority = curr_priority;
+
     struct semaphore_elem *sema_a = list_entry (a, struct semaphore_elem, elem);
     struct semaphore_elem *sema_b = list_entry (b, struct semaphore_elem, elem);
 
-    return sema_a->semaphore.priority > sema_b->semaphore.priority;
+    if (!list_empty (&sema_a->semaphore.waiters))
+        sema_a_priority = list_entry (list_front (&sema_a->semaphore.waiters),
+                                      struct thread, elem)->priority;
+    if (!list_empty (&sema_b->semaphore.waiters))
+        sema_b_priority = list_entry (list_front (&sema_b->semaphore.waiters),
+                                      struct thread, elem)->priority;
+
+    return sema_a_priority > sema_b_priority;
 }
 
 /* Returns true if lock A has greater priotity than lock B, false otherwise. */
