@@ -139,8 +139,8 @@ void thread_exit (void) NO_RETURN;
                         void thread_yield (void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
-                        typedef void thread_action_func (struct thread *t, void *aux);
-                        void thread_foreach (thread_action_func *, void *
+typedef void thread_action_func (struct thread *t, void *aux);
+void thread_foreach (thread_action_func *, void *
 );
 
 int thread_get_priority (void);
@@ -154,6 +154,7 @@ int thread_get_load_avg (void);
 /* Donation functions. */
 void donate (struct thread *, int);
 int next_donated_priority (struct thread *);
+int next_thread_to_run_priority (void);
 
 /* Compares the sleep time of two threads list elements A and B, given
    auxiliary data AUX.  Returns true if A has less sleep time than B, or

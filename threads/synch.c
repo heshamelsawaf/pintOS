@@ -38,6 +38,11 @@ struct semaphore_elem {
   struct semaphore semaphore;         /* This semaphore. */
 };
 
+static void lock_acquire_vanilla (struct lock *);
+static void lock_acquire_priority (struct lock *);
+static void lock_release_vanilla (struct lock *);
+static void lock_release_priority (struct lock *);
+
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
    manipulating it:

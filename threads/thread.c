@@ -67,18 +67,21 @@ fixed_float load_avg;
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+static void calculate_priority_advanced (struct thread *, void *);
+static void calculate_recent_cpu_advanced (struct thread *, void *);
+static void update_load_avg (void);
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
 static struct thread *running_thread (void);
 static struct thread *next_thread_to_run (void);
-static int next_thread_to_run_priority (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
-                                        static void *alloc_frame (struct thread *, size_t size);
-                                        static void schedule (void);
-                                        void thread_schedule_tail (struct thread *prev);
-                                        static tid_t allocate_tid (void);
+static void *alloc_frame (struct thread *, size_t size);
+static void schedule (void);
+void thread_schedule_tail (struct thread *prev);
+static tid_t allocate_tid (void);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -132,9 +135,10 @@ thread_start (void)
   sema_down (&idle_started);
 }
 
-/* advanced scheduler */
-/* recalculate priority for the given thread. */
-void calculate_priority_advanced (struct thread *t, void *aux UNUSED)
+/* Advanced Scheduler */
+/* Recalculate priority for the given thread. */
+void 
+calculate_priority_advanced (struct thread *t, void *aux UNUSED)
 {
   t->priority =
     63 -
@@ -147,7 +151,10 @@ void calculate_priority_advanced (struct thread *t, void *aux UNUSED)
     (t->nice * 2);
 }
 
-void calculate_recent_cpu_advanced (struct thread *t, void *aux UNUSED)
+/* Advanced Scheduler */
+/* Recalculate recent CPU for the given thread. */
+void 
+calculate_recent_cpu_advanced (struct thread *t, void *aux UNUSED)
 {
   fixed_float load_average_term =
     div_real_by_real (
@@ -169,7 +176,8 @@ void calculate_recent_cpu_advanced (struct thread *t, void *aux UNUSED)
 
 /* advanced scheduler */
 /* update system load average */
-void update_load_avg ()
+void 
+update_load_avg (void)
 {
   load_avg =
     add_real_to_real (
