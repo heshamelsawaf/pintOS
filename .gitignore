@@ -10,7 +10,9 @@ tags
 ./threads/Make.vars
 ./utils/pintos
 ./utils/Pintos.pm
-
+.idea/
+CMakeLists.txt
+cmake-build-debug/
 
 # Prerequisites
 *.d
