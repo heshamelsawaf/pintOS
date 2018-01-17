@@ -50,7 +50,7 @@ parse_args(char *file_name, char **argv, int *argc);
   return tid;
 }
 
-/* A thread function that loads a user process and starts it
+/* A thread function that loptrs a user process and starts it
    running. */
 static void
 start_process (void *file_name_)
@@ -205,7 +205,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
 
-/* Loads an ELF executable from FILE_NAME into the current thread.
+/* Loptrs an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
@@ -379,7 +379,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
   return true;
 }
 
-/* Loads a segment starting at offset OFS in FILE at address
+/* Loptrs a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
 
@@ -459,42 +459,40 @@ setup_stack (void **esp, char **argv, int argc)
 
   *esp = PHYS_BASE;
   /* Setup argument in stack. */
-  uint32_t adds[argc + 1];
-  adds[argc] = 0;
+  char *ptrs[argc + 1];
+  ptrs[argc] = NULL;
+
   for (int i = argc - 1; i >= 0; i--)
     {
       /* Pushing arguments' data in stack. */
       *esp -= (strlen (argv[i]) + 1) * sizeof (char);
-      adds[i] = *esp;
+      ptrs[i] = *esp;
       memcpy (*esp, argv[i], strlen (argv[i]) + 1);
     }
   /* Word alignment. */
-  while ((int) *esp % 4 != 0)
-    {
-      *esp -= sizeof (char);
-      *(int *)(*esp) = 0;
-    }
+  *esp -= ((int) *esp % 4 + 4) % 4;
   /* Pushing arguments' addresses to stack. */
   for (int i = argc; i >= 0; i--)
     {
-      *esp -= sizeof (uint32_t);
-      memcpy (*esp, &adds[i], sizeof (uint32_t));
+      *esp -= sizeof (char *);
+      memcpy (*esp, &ptrs[i], sizeof (char *));
     }
   /* Pushing args[] address to stack. */
-  uint32_t args_ptr = *esp;
-  *esp -= sizeof (uint32_t);
-  memcpy (*esp, &args_ptr, sizeof (uint32_t));
-  /* Pushing argv. */
+  void *args_ptr = *esp;
+  *esp -= sizeof (void *);
+  memcpy (*esp, &args_ptr, sizeof (void *));
+  /* Pushing argc. */
   *esp -= sizeof (int);
   *(int *)(*esp) = argc;
+
   /* Pushing fake return address. */
-  *esp -= sizeof (uint32_t);
+  *esp -= sizeof (int);
   *(int *)(*esp) = 0;
 
   return success;
 }
 
-/* Adds a mapping from user virtual address UPAGE to kernel
+/* ptrs a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
    If WRITABLE is true, the user process may modify the page;
    otherwise, it is read-only.
