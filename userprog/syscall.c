@@ -3,6 +3,7 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 #define SYSCALL_COUNT 13
 
 static void syscall_handler (struct intr_frame *);
@@ -10,6 +11,10 @@ static void syscall_handler (struct intr_frame *);
 static void (*syscall_handlers[SYSCALL_COUNT]) (struct intr_frame *);
 
 static void sys_write_handle (struct intr_frame *);
+
+static int get_user (const uint8_t *uaddr);
+static bool put_user (uint8_t *udst, uint8_t byte);
+static int get_user_four_byte (const uint8_t *uaddr);
 
 void
 syscall_init (void)
@@ -53,8 +58,28 @@ sys_write_handle (struct intr_frame *f)
 static void
 syscall_handler (struct intr_frame *f)
 {
-  int syscall_key = * (int *) f->esp;
+  int syscall_key = get_user_four_byte (f->esp);
   syscall_handlers[syscall_key] (f);
+}
+
+/* Reads 4-bytes at user virtual address UADDR.
+ UADDR must be below PHYS_BASE.
+ Returns the 4-bytes value if successful, terminate the
+ process o.w. */
+static int
+get_user_four_byte (const uint8_t *uaddr)
+{
+  int result = 0;
+  for (int i=0; i<4; i++)
+     {
+       if ((void *)(uaddr+i) >= PHYS_BASE);
+          //TODO: exit (-1);
+       int retVal = get_user (uaddr + i);
+       if (retVal == -1);
+          //TODO: exit (-1);
+       result |= (retVal << (8*i));
+     }
+   return result;
 }
 
 /* Reads a byte at user virtual address UADDR.
