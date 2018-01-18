@@ -69,7 +69,6 @@ process_execute (const char *file_name)
 
   /* Wait for IPC message receiving of pid. */
   snprintf (buf, BUFSIZE, "exec %d", tid);
-
   pid_t pid = ipc_receive (buf);
 
   if (pid != -1)
@@ -90,7 +89,6 @@ process_execute (const char *file_name)
       else
         list_push_back (&proc->children_processes, &get_process (pid)->elem);
     }
-
   return pid;
 }
 
@@ -165,8 +163,13 @@ process_wait (tid_t child_tid)
 
   struct list_elem *e;
 
+<<<<<<< HEAD
   for (e = list_begin (&current_process->children_processes); e != list_end (&current_process->children_processes);
        e = list_next (e))
+=======
+  for (e = list_begin (&current_process->children_processes);
+       e != list_end (&current_process->children_processes); e = list_next (e))
+>>>>>>> f61d0f07fd9c73224e2a80aa29871711a877e9c9
     {
       struct process *proc = list_entry (e, struct process, elem);
 
@@ -183,6 +186,10 @@ process_wait (tid_t child_tid)
     /* Wait for IPC message receiving of pid. */
     snprintf (buf, BUFSIZE, "exit %d", child_tid);
     int status = ipc_receive (buf);
+<<<<<<< HEAD
+=======
+
+>>>>>>> f61d0f07fd9c73224e2a80aa29871711a877e9c9
     return status;
 }
 
