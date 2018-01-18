@@ -571,7 +571,6 @@ setup_stack (void **esp, char **argv, int argc)
   /* Pushing argc. */
   *esp -= sizeof (int);
   *(int *)(*esp) = argc;
-
   /* Pushing fake return address. */
   *esp -= sizeof (int);
   *(int *)(*esp) = 0;
