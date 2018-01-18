@@ -79,6 +79,10 @@ static void
 sys_exec_handle (struct intr_frame *f)
 {
   char *cmd_line = (char *)get_user_four_byte (f->esp + 4);
+
+  /* Check for pointer validity. */
+  if (cmd_line >= PHYS_BASE || get_user (cmd_line) == -1)
+     exit (-1);
   f->eax = process_execute (cmd_line);
 }
 
@@ -93,36 +97,51 @@ sys_wait_handle (struct intr_frame *f)
 static void
 sys_create_handle (struct intr_frame *f)
 {
-  char *file = * (char **) (f->esp + 4);
-  unsigned initial_size = * (unsigned *) (f->esp + 8);
+  const char *file = (const char *)get_user_four_byte (f->esp + 4);
+  unsigned initial_size = (unsigned)get_user_four_byte (f->esp + 8);
+
+  /* Check for pointer validity. */
+  if (file + initial_size - 1 >= PHYS_BASE ||
+    get_user(file + initial_size - 1) == -1)
+      exit(-1);
+
   f->eax = filesys_create (file, initial_size);
 }
 
 static void
 sys_remove_handle (struct intr_frame *f)
 {
-  char *file = * (char **) (f->esp + 4);
+  char *file = (char *)get_user_four_byte (f->esp + 4);
+
+  /* Check for pointer validity. */
+  if (file >= PHYS_BASE || get_user (file) == -1)
+     exit (-1);
+
   f->eax = filesys_remove (file);
 }
 
 static void
 sys_open_handle (struct intr_frame *f)
 {
-  char *file = * (char **) (f->esp + 4);
+  char *file = (char *)get_user_four_byte (f->esp + 4);
+
+  /* Check for pointer validity. */
+  if (file >= PHYS_BASE || get_user (file) == -1)
+     exit (-1);
 
 }
 
 static void
 sys_filesize_handle (struct intr_frame *f)
 {
-  int fd = * (int *) (f->esp + 4);
+  int fd = get_user_four_byte (f->esp + 4);
 
 }
 
 static void
 sys_read_handle (struct intr_frame *f)
 {
-  int fd = * (int *) (f->esp + 4);
+  int fd = get_user_four_byte (f->esp + 4);
 }
 
 static void
@@ -131,6 +150,10 @@ sys_write_handle (struct intr_frame *f)
   int fd = get_user_four_byte (f->esp + 4);
   void *buffer = (void *)get_user_four_byte (f->esp + 8);
   unsigned size =  (unsigned)get_user_four_byte(f->esp + 12);
+
+  /* Check for pointer validity. */
+  if (buffer + size - 1 >= PHYS_BASE || get_user (buffer + size - 1) == -1)
+     exit (-1);
 
   if (fd == STDOUT_FILENO)
     {
