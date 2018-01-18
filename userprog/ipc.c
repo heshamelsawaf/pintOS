@@ -23,7 +23,7 @@ struct list sent_mail;
 struct list waiting_list;
 
 
-void init_ipc ()
+void ipc_init ()
 {
   list_init (&sent_mail);
   list_init (&waiting_list);
@@ -45,7 +45,7 @@ struct list_elem *get_msg (char *signature)
     return NULL;
 }
 
-void send_ipc (char *signature, int data)
+void ipc_send (char *signature, int data)
 {
   struct list_elem *e;
 
@@ -67,7 +67,7 @@ void send_ipc (char *signature, int data)
     }
 }
 
-int receive_ipc (char *signature)
+int ipc_receive (char *signature)
 {
   struct list_elem *e;
   int data;

@@ -7,6 +7,7 @@
 #include <string.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
+#include "userprog/ipc.h"
 #include "userprog/tss.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
@@ -17,23 +18,36 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#define BUFSIZE 100
+
 
 static thread_func start_process NO_RETURN;
-                                 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static struct list all_processes_list;
+
+static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
 /* Parse arguments passed in 'file_name' to a bunch of separate arguments
 'argv' with an argument count 'argc'. */
-void
-parse_args(char *file_name, char **argv, int *argc);
+void parse_args(char *file_name, char **argv, int *argc);
 
+/* Get process with given tid from list of all processes currently resident
+in the system. */
+struct process *get_process (tid_t tid);
+
+
+/* Initiate processes system. */
+void process_init () {
+  list_init (&all_processes_list);
+}
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
-                                 tid_t
-                                 process_execute (const char *file_name)
+tid_t
+process_execute (const char *file_name)
 {
   char *fn_copy;
+  char buf[BUFSIZE];
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
@@ -47,7 +61,24 @@ parse_args(char *file_name, char **argv, int *argc);
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
-  return tid;
+
+  /* Wait for IPC message receiving of pid. */
+  snprintf (buf, BUFSIZE, "exec %d", tid);
+
+  pid_t pid = ipc_receive (buf);
+
+  if (pid != -1)
+    {
+      // Add this to children processes.
+      tid_t current_tid = thread_tid ();
+      struct process *proc = get_process (current_tid);
+
+      ASSERT (proc != NULL);
+
+      list_push_back (&proc->children_processes, &proc->elem);
+    }
+
+  return pid;
 }
 
 /* A thread function that loptrs a user process and starts it
@@ -58,6 +89,7 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+  char buf[BUFSIZE];
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -68,8 +100,28 @@ start_process (void *file_name_)
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
+
+  tid_t tid = thread_tid ();
+  snprintf (buf, BUFSIZE, "exec %d", tid);
+
   if (!success)
-    thread_exit ();
+    {
+      /* Send a message to process waiting in `process_execute ()` with -1
+      indicating failure in loading ELF binaries, quit afterwards. */
+      ipc_send (buf, -1);
+      thread_exit ();
+    }
+
+  /* Construct a process struct element and add it to global processes list. */
+  struct process *proc = (struct process *) malloc (sizeof (struct process));
+  proc->pid = tid;
+  list_init (&proc->children_processes);
+  list_push_back (&all_processes_list, &proc->allelem);
+
+  /* Send a message to process waiting in `process_execute ()` with `tid/pid`
+  indicating success of loading ELF binaries, process waiting can now add this processes
+  to its list of child processes. */
+  ipc_send (buf, tid);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -523,4 +575,20 @@ parse_args(char *file_name, char **argv, int *argc)
       argv[*argc] = token;
       (*argc)++;
     }
+}
+
+struct process
+*get_process (tid_t tid)
+{
+  struct list_elem *e;
+
+  for (e = list_begin (&all_processes_list); e != list_end (&all_processes_list);
+       e = list_next (e))
+    {
+      struct process *proc = list_entry (e, struct process, allelem);
+
+      if (proc->pid == tid)
+        return proc;
+    }
+  return NULL;
 }
