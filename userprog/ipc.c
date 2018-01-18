@@ -51,7 +51,8 @@ void ipc_send (char *signature, int data)
 
   /* Construct a new message. */
   struct message *msg = malloc (sizeof (struct message));
-  msg->signature = signature;
+  msg->signature = malloc (sizeof (char *));
+  strlcpy (msg->signature, signature, strlen (signature) + 1);
   msg->data = data;
   /* Insert the newly constructed messsage to sent mail. */
   list_push_back (&sent_mail, &msg->elem);
@@ -89,11 +90,13 @@ int ipc_receive (char *signature)
   /* If never found a message with this signature, wait for someone to pass a message with this
   signature using a semaphore. */
   struct waiting_process *proc = malloc (sizeof (struct waiting_process));
+  proc->signature = malloc (sizeof (char *));
+  strlcpy (proc->signature, signature, strlen (signature) + 1);
   proc->signature = signature;
+
   sema_init (&proc->sema, 0);
 
-  list_push_back (&proc, &proc->elem);
-
+  list_push_back (&waiting_list, &proc->elem);
   /* Wait on semaphore. */
   sema_down (&proc->sema);
 

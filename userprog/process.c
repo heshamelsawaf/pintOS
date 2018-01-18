@@ -64,20 +64,26 @@ process_execute (const char *file_name)
 
   /* Wait for IPC message receiving of pid. */
   snprintf (buf, BUFSIZE, "exec %d", tid);
-
   pid_t pid = ipc_receive (buf);
 
   if (pid != -1)
     {
       // Add this to children processes.
       tid_t current_tid = thread_tid ();
+
       struct process *proc = get_process (current_tid);
 
-      ASSERT (proc != NULL);
-
-      list_push_back (&proc->children_processes, &proc->elem);
+      if (proc == NULL)
+        {
+            struct process *parent = (struct process *) malloc (sizeof (struct process));
+            parent->pid = current_tid;
+            list_init (&parent->children_processes);
+            list_push_back (&all_processes_list, &parent->allelem);
+            list_push_back (&parent->children_processes, &get_process (pid)->elem);
+        }
+      else
+        list_push_back (&proc->children_processes, &get_process (pid)->elem);
     }
-
   return pid;
 }
 
@@ -147,16 +153,16 @@ process_wait (tid_t child_tid)
 {
   char buf[BUFSIZE];
   bool found = false;
-
   tid_t tid = thread_tid ();
   struct process *current_process = get_process (tid);
 
   struct list_elem *e;
 
-  for (e = list_begin (&current_process->elem); e != list_end (&current_process->children_processes);
-       e = list_next (e))
+  for (e = list_begin (&current_process->children_processes);
+       e != list_end (&current_process->children_processes); e = list_next (e))
     {
       struct process *proc = list_entry (e, struct process, elem);
+
       if (proc->pid == child_tid)
          {
             found = true;
@@ -168,10 +174,9 @@ process_wait (tid_t child_tid)
        return -1;
 
     /* Wait for IPC message receiving of pid. */
-    snprintf (buf, BUFSIZE, "exit %d", tid);
-    // printf ("I am going to wait, pid = %d\n", child_tid);
+    snprintf (buf, BUFSIZE, "exit %d", child_tid);
     int status = ipc_receive (buf);
-    // printf ("I am done waiting, status = %d\n", status);
+
     return status;
 }
 
@@ -179,9 +184,12 @@ process_wait (tid_t child_tid)
 void
 process_exit (void)
 {
-  // printf("I am leaving! :(, pid = %d\n", thread_tid ());
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  char buf[BUFSIZE];
+
+  snprintf (buf, BUFSIZE, "exit %d", cur->tid);
+  ipc_send (buf, 0);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */

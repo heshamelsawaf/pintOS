@@ -12,6 +12,7 @@ static void syscall_handler (struct intr_frame *);
 
 static void (*syscall_handlers[SYSCALL_COUNT]) (struct intr_frame *);
 
+static void sys_exit_handle (struct intr_frame *);
 static void sys_write_handle (struct intr_frame *);
 static void sys_exec_handle (struct intr_frame *);
 static void sys_wait_handle (struct intr_frame *);
@@ -27,7 +28,7 @@ syscall_init (void)
 
   /* Initialize system calls function pointers. */
   // syscall_handlers[SYS_HALT]     = &sys_halt_handle;
-  // syscall_handlers[SYS_EXIT]     = &sys_exit_handle;
+  syscall_handlers[SYS_EXIT]     = &sys_exit_handle;
   syscall_handlers[SYS_EXEC]     = &sys_exec_handle;
   syscall_handlers[SYS_WAIT]     = &sys_wait_handle;
   // syscall_handlers[SYS_CREATE]   = &sys_create_handle;
@@ -42,9 +43,16 @@ syscall_init (void)
 }
 
 static void
+sys_exit_handle (struct intr_frame *f) {
+   int status = get_user_four_byte (f->esp + 4);
+   process_exit ();
+   thread_exit ();
+}
+
+
+static void
 sys_exec_handle (struct intr_frame *f) {
   char *cmd_line = * (char **) (f->esp + 4);
-
   f->eax = process_execute (cmd_line);
 }
 
@@ -52,7 +60,6 @@ static void
 sys_wait_handle (struct intr_frame *f)
 {
   pid_t pid =  (pid_t) get_user_four_byte (f->esp + 4);
-
   f->eax = process_wait (pid);
 }
 
