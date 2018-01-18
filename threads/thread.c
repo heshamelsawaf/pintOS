@@ -137,7 +137,7 @@ thread_start (void)
 
 /* Advanced Scheduler */
 /* Recalculate priority for the given thread. */
-void 
+void
 calculate_priority_advanced (struct thread *t, void *aux UNUSED)
 {
   t->priority =
@@ -153,7 +153,7 @@ calculate_priority_advanced (struct thread *t, void *aux UNUSED)
 
 /* Advanced Scheduler */
 /* Recalculate recent CPU for the given thread. */
-void 
+void
 calculate_recent_cpu_advanced (struct thread *t, void *aux UNUSED)
 {
   fixed_float load_average_term =
@@ -176,7 +176,7 @@ calculate_recent_cpu_advanced (struct thread *t, void *aux UNUSED)
 
 /* advanced scheduler */
 /* update system load average */
-void 
+void
 update_load_avg (void)
 {
   load_avg =
@@ -403,12 +403,12 @@ thread_tid (void)
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
 void
-thread_exit (void)
+thread_exit (int status)
 {
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  process_exit ();
+  process_exit (status);
 #endif
 
   /* Remove thread from all threads list, set our status to dying,
@@ -512,8 +512,8 @@ donate (struct thread *t, int priority)
 }
 
 /* Selectes and returns the next priority that T shall donate.
-The next donated priority is T's default one if T possesses 
-no synchronization primitives(Locks specifically). If it does, then 
+The next donated priority is T's default one if T possesses
+no synchronization primitives(Locks specifically). If it does, then
 the top most priority is selected and returned.
 */
 int
@@ -619,7 +619,7 @@ kernel_thread (thread_func *function, void *aux)
 
   intr_enable ();       /* The scheduler runs with interrupts off. */
   function (aux);       /* Execute the thread function. */
-  thread_exit ();       /* If function() returns, kill the thread. */
+  thread_exit (-1);       /* If function() returns, kill the thread. */
 }
 
 /* Returns the running thread. */

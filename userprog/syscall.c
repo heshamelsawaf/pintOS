@@ -65,8 +65,7 @@ static void
 exit (int status)
 {
   printf("%s: exit(%d)\n", thread_current()->name, status);
-  process_exit ();
-  thread_exit ();
+  thread_exit (status);
 }
 
 static void
@@ -187,11 +186,11 @@ get_user_four_byte (const uint8_t *uaddr)
   int result = 0;
   for (int i = 0; i < 4; i++)
     {
-      if ((void *) (uaddr + i) >= PHYS_BASE);
-        //TODO: exit (-1);
+      if ((void *) (uaddr + i) >= PHYS_BASE)
+         exit (-1);
       int ret_val = get_user (uaddr + i);
-      if (ret_val == -1);
-        //TODO: exit (-1);
+      if (ret_val == -1)
+         exit (-1);
       result |= (ret_val << (8*i));
     }
   return result;

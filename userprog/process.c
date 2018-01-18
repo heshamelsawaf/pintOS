@@ -120,7 +120,7 @@ start_process (void *file_name_)
       /* Send a message to process waiting in `process_execute ()` with -1
       indicating failure in loading ELF binaries, quit afterwards. */
       ipc_send (buf, -1);
-      thread_exit ();
+      thread_exit (-1);
     }
 
   /* Construct a process struct element and add it to global processes list. */
@@ -188,14 +188,14 @@ process_wait (tid_t child_tid)
 
 /* Free the current process's resources. */
 void
-process_exit (void)
+process_exit (int status)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
   char buf[BUFSIZE];
 
   snprintf (buf, BUFSIZE, "exit %d", cur->tid);
-  ipc_send (buf, 0);
+  ipc_send (buf, status);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
