@@ -78,7 +78,7 @@ sys_exit_handle (struct intr_frame *f)
 static void
 sys_exec_handle (struct intr_frame *f)
 {
-  char *cmd_line = * (char **) (f->esp + 4);
+  char *cmd_line = (char *)get_user_four_byte (f->esp + 4);
   f->eax = process_execute (cmd_line);
 }
 

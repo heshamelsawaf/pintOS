@@ -34,7 +34,7 @@ void parse_args(char *file_name, char **argv, int *argc);
 in the system. */
 struct process *get_process (tid_t tid);
 
-void get_process_name (const char*, char **);
+void get_process_name (char*, char **);
 
 
 /* Initiate processes system. */
@@ -48,22 +48,24 @@ void process_init () {
 tid_t
 process_execute (const char *file_name)
 {
-  char *fn_copy, *cmd_name;
+  char *fn_copy, *fn_copy2, *cmd_name;
   char buf[BUFSIZE];
   tid_t tid;
+
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
-  cmd_name = (char *) malloc (PGSIZE);
-  if (fn_copy == NULL || cmd_name == NULL)
+  fn_copy2 = palloc_get_page (0);
+  if (fn_copy == NULL || fn_copy2 == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  strlcpy (fn_copy2, file_name, PGSIZE);
+  get_process_name (fn_copy2, &cmd_name);
 
-  get_process_name (file_name, &cmd_name);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (cmd_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_copy2, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
 
@@ -334,7 +336,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file = filesys_open (argv[0]);
   if (file == NULL)
     {
-      //printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", file_name);
       goto done;
     }
 
@@ -347,7 +349,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024)
     {
-      //printf ("load: %s: error loading executable\n", file_name);
+      printf ("load: %s: error loading executable\n", file_name);
       goto done;
     }
 
@@ -640,7 +642,7 @@ struct process
    The process name is the first contiguous letters encountered
    in the string. */
 void
-get_process_name (const char *cmd, char **buf){
+get_process_name (char *cmd, char **buf){
   char *save_ptr;
   *buf = strtok_r (cmd, " ", &save_ptr);
   return ;
