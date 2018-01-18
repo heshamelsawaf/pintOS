@@ -28,6 +28,7 @@
 #include "userprog/gdt.h"
 #include "userprog/syscall.h"
 #include "userprog/tss.h"
+#include "userprog/ipc.h"
 #else
 #include "tests/threads/tests.h"
 #endif
@@ -89,6 +90,7 @@ int main (void) NO_RETURN;
      then enable console locking. */
   thread_init ();
   console_init ();
+  process_init ();
 
   /* Greet user. */
   printf ("Pintos booting with %'"PRIu32" kB RAM...\n",
@@ -113,6 +115,7 @@ int main (void) NO_RETURN;
 #ifdef USERPROG
   exception_init ();
   syscall_init ();
+  ipc_init ();
 #endif
 
   /* Start thread scheduler and enable interrupts. */

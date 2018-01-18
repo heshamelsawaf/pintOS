@@ -6,11 +6,14 @@
 #include "threads/vaddr.h"
 #define SYSCALL_COUNT 13
 
+typedef int pid_t;
+
 static void syscall_handler (struct intr_frame *);
 
 static void (*syscall_handlers[SYSCALL_COUNT]) (struct intr_frame *);
 
 static void sys_write_handle (struct intr_frame *);
+static void sys_exec_handle (struct intr_frame *);
 static void sys_wait_handle (struct intr_frame *);
 
 static int get_user (const uint8_t *uaddr);
@@ -25,7 +28,7 @@ syscall_init (void)
   /* Initialize system calls function pointers. */
   // syscall_handlers[SYS_HALT]     = &sys_halt_handle;
   // syscall_handlers[SYS_EXIT]     = &sys_exit_handle;
-  // syscall_handlers[SYS_EXEC]     = &sys_exec_handle;
+  syscall_handlers[SYS_EXEC]     = &sys_exec_handle;
   syscall_handlers[SYS_WAIT]     = &sys_wait_handle;
   // syscall_handlers[SYS_CREATE]   = &sys_create_handle;
   // syscall_handlers[SYS_REMOVE]   = &sys_remove_handle;
@@ -36,6 +39,21 @@ syscall_init (void)
   // syscall_handlers[SYS_SEEK]     = &sys_seek_handle;
   // syscall_handlers[SYS_TELL]     = &sys_tell_handle;
   // syscall_handlers[SYS_CLOSE]    = &sys_close_handle;
+}
+
+static void
+sys_exec_handle (struct intr_frame *f) {
+  char *cmd_line = * (char **) (f->esp + 4);
+
+  f->eax = process_execute (cmd_line);
+}
+
+static void
+sys_wait_handle (struct intr_frame *f)
+{
+  pid_t pid = * (pid_t *) (f->esp + 4);
+  
+  // f->eax = process_wait (pid);
 }
 
 static void
@@ -54,13 +72,6 @@ sys_write_handle (struct intr_frame *f)
     {
 
     }
-}
-
-static void
-sys_wait_handle (struct intr_frame *f)
-{
-  // pid_t pid = * (pid_t *) (f->esp + 4);
-  // f->eax = process_wait (pid);
 }
 
 static void
