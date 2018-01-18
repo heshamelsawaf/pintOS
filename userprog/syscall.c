@@ -62,13 +62,19 @@ sys_halt_handle (struct intr_frame *f UNUSED)
 }
 
 static void
+exit (int status)
+{
+  printf("%s: exit(%d)\n", thread_current()->name, status);
+  process_exit ();
+  thread_exit ();
+}
+
+static void
 sys_exit_handle (struct intr_frame *f)
 {
    int status = get_user_four_byte (f->esp + 4);
-   process_exit ();
-   thread_exit ();
+   exit (status);
 }
-
 
 static void
 sys_exec_handle (struct intr_frame *f)

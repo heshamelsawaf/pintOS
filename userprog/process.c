@@ -34,6 +34,8 @@ void parse_args(char *file_name, char **argv, int *argc);
 in the system. */
 struct process *get_process (tid_t tid);
 
+void get_process_name (const char*, char **);
+
 
 /* Initiate processes system. */
 void process_init () {
@@ -46,19 +48,22 @@ void process_init () {
 tid_t
 process_execute (const char *file_name)
 {
-  char *fn_copy;
+  char *fn_copy, *cmd_name;
   char buf[BUFSIZE];
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  cmd_name = (char *) malloc (PGSIZE);
+  if (fn_copy == NULL || cmd_name == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  get_process_name (file_name, &cmd_name);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (cmd_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
 
@@ -158,8 +163,10 @@ process_wait (tid_t child_tid)
 
   struct list_elem *e;
 
+
   for (e = list_begin (&current_process->children_processes);
        e != list_end (&current_process->children_processes); e = list_next (e))
+
     {
       struct process *proc = list_entry (e, struct process, elem);
 
@@ -176,7 +183,6 @@ process_wait (tid_t child_tid)
     /* Wait for IPC message receiving of pid. */
     snprintf (buf, BUFSIZE, "exit %d", child_tid);
     int status = ipc_receive (buf);
-
     return status;
 }
 
@@ -625,4 +631,14 @@ struct process
         return proc;
     }
   return NULL;
+}
+
+/* Extracts the process name from CMD into BUF.
+   The process name is the first contiguous letters encountered
+   in the string. */
+void
+get_process_name (const char *cmd, char **buf){
+  char *save_ptr;
+  *buf = strtok_r (cmd, " ", &save_ptr);
+  return ;
 }

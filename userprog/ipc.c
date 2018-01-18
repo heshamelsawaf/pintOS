@@ -38,7 +38,6 @@ struct list_elem *get_msg (char *signature)
   for (e = list_begin (&sent_mail); e != list_end (&sent_mail); e = list_next (e))
     {
       struct message *msg = list_entry (e, struct message, elem);
-
       if (strcmp (msg->signature, signature) == 0)
         return e;
     }
