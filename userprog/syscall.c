@@ -61,7 +61,7 @@ sys_halt_handle (struct intr_frame *f UNUSED)
   shutdown_power_off ();
 }
 
-static void
+void
 exit (int status)
 {
   printf("%s: exit(%d)\n", thread_current()->name, status);
@@ -148,12 +148,14 @@ static void
 sys_write_handle (struct intr_frame *f)
 {
   int fd = get_user_four_byte (f->esp + 4);
-  void *buffer = (void *)get_user_four_byte (f->esp + 8);
+  const void *buffer = (const void *)get_user_four_byte (f->esp + 8);
   unsigned size =  (unsigned)get_user_four_byte(f->esp + 12);
+
 
   /* Check for pointer validity. */
   if (buffer + size - 1 >= PHYS_BASE || get_user (buffer + size - 1) == -1)
      exit (-1);
+
 
   if (fd == STDOUT_FILENO)
     {
