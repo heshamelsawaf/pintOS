@@ -51,17 +51,17 @@ sys_exec_handle (struct intr_frame *f) {
 static void
 sys_wait_handle (struct intr_frame *f)
 {
-  pid_t pid = * (pid_t *) (f->esp + 4);
-  
-  // f->eax = process_wait (pid);
+  pid_t pid =  (pid_t) get_user_four_byte (f->esp + 4);
+
+  f->eax = process_wait (pid);
 }
 
 static void
 sys_write_handle (struct intr_frame *f)
 {
-  int fd = * (int *) (f->esp + 4);
-  void *buffer = * (char**) (f->esp + 8);
-  unsigned size = * (unsigned *) (f->esp + 12);
+  int fd = get_user_four_byte (f->esp + 4);
+  void *buffer = (void *)get_user_four_byte (f->esp + 8);
+  unsigned size =  (unsigned)get_user_four_byte(f->esp + 12);
 
   if (fd == STDOUT_FILENO)
     {

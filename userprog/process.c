@@ -143,16 +143,43 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED)
+process_wait (tid_t child_tid)
 {
-  while (true);
-  return -1;
+  char buf[BUFSIZE];
+  bool found = false;
+
+  tid_t tid = thread_tid ();
+  struct process *current_process = get_process (tid);
+
+  struct list_elem *e;
+
+  for (e = list_begin (&current_process->elem); e != list_end (&current_process->children_processes);
+       e = list_next (e))
+    {
+      struct process *proc = list_entry (e, struct process, elem);
+      if (proc->pid == child_tid)
+         {
+            found = true;
+            break;
+         }
+    }
+
+    if (!found)
+       return -1;
+
+    /* Wait for IPC message receiving of pid. */
+    snprintf (buf, BUFSIZE, "exit %d", tid);
+    // printf ("I am going to wait, pid = %d\n", child_tid);
+    int status = ipc_receive (buf);
+    // printf ("I am done waiting, status = %d\n", status);
+    return status;
 }
 
 /* Free the current process's resources. */
 void
 process_exit (void)
 {
+  // printf("I am leaving! :(, pid = %d\n", thread_tid ());
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
