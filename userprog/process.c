@@ -159,7 +159,7 @@ process_wait (tid_t child_tid)
   char buf[BUFSIZE];
   bool found = false;
   tid_t tid = thread_tid ();
-  struct process *current_process = get_process (tid);
+  struct process *child_process, *current_process = get_process (tid);
 
   struct list_elem *e;
 
@@ -168,9 +168,9 @@ process_wait (tid_t child_tid)
        e != list_end (&current_process->children_processes); e = list_next (e))
 
     {
-      struct process *proc = list_entry (e, struct process, elem);
+      child_process = list_entry (e, struct process, elem);
 
-      if (proc->pid == child_tid)
+      if (child_process->pid == child_tid)
          {
             found = true;
             break;
@@ -183,6 +183,9 @@ process_wait (tid_t child_tid)
     /* Wait for IPC message receiving of pid. */
     snprintf (buf, BUFSIZE, "exit %d", child_tid);
     int status = ipc_receive (buf);
+
+    /* remove child from childs-list. */
+    list_remove (&child_process->elem);
     return status;
 }
 
