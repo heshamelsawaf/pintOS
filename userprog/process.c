@@ -34,6 +34,8 @@ void parse_args(char *file_name, char **argv, int *argc);
 in the system. */
 struct process *get_process (tid_t tid);
 
+void get_process_name (const char*, char **);
+
 
 /* Initiate processes system. */
 void process_init () {
@@ -46,19 +48,22 @@ void process_init () {
 tid_t
 process_execute (const char *file_name)
 {
-  char *fn_copy;
+  char *fn_copy, *cmd_name;
   char buf[BUFSIZE];
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  cmd_name = (char *) malloc (PGSIZE);
+  if (fn_copy == NULL || cmd_name == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  get_process_name (file_name, &cmd_name);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (cmd_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
 
@@ -71,11 +76,19 @@ process_execute (const char *file_name)
     {
       // Add this to children processes.
       tid_t current_tid = thread_tid ();
+
       struct process *proc = get_process (current_tid);
 
-      ASSERT (proc != NULL);
-
-      list_push_back (&proc->children_processes, &proc->elem);
+      if (proc == NULL)
+        {
+            struct process *parent = (struct process *) malloc (sizeof (struct process));
+            parent->pid = current_tid;
+            list_init (&parent->children_processes);
+            list_push_back (&all_processes_list, &parent->allelem);
+            list_push_back (&parent->children_processes, &get_process (pid)->elem);
+        }
+      else
+        list_push_back (&proc->children_processes, &get_process (pid)->elem);
     }
 
   return pid;
@@ -147,16 +160,16 @@ process_wait (tid_t child_tid)
 {
   char buf[BUFSIZE];
   bool found = false;
-
   tid_t tid = thread_tid ();
   struct process *current_process = get_process (tid);
 
   struct list_elem *e;
 
-  for (e = list_begin (&current_process->elem); e != list_end (&current_process->children_processes);
+  for (e = list_begin (&current_process->children_processes); e != list_end (&current_process->children_processes);
        e = list_next (e))
     {
       struct process *proc = list_entry (e, struct process, elem);
+
       if (proc->pid == child_tid)
          {
             found = true;
@@ -168,10 +181,8 @@ process_wait (tid_t child_tid)
        return -1;
 
     /* Wait for IPC message receiving of pid. */
-    snprintf (buf, BUFSIZE, "exit %d", tid);
-    // printf ("I am going to wait, pid = %d\n", child_tid);
+    snprintf (buf, BUFSIZE, "exit %d", child_tid);
     int status = ipc_receive (buf);
-    // printf ("I am done waiting, status = %d\n", status);
     return status;
 }
 
@@ -179,9 +190,12 @@ process_wait (tid_t child_tid)
 void
 process_exit (void)
 {
-  // printf("I am leaving! :(, pid = %d\n", thread_tid ());
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  char buf[BUFSIZE];
+
+  snprintf (buf, BUFSIZE, "exit %d", cur->tid);
+  ipc_send (buf, 0);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -618,4 +632,14 @@ struct process
         return proc;
     }
   return NULL;
+}
+
+/* Extracts the process name from CMD into BUF.
+   The process name is the first contiguous letters encountered
+   in the string. */
+void
+get_process_name (const char *cmd, char **buf){
+  char *save_ptr;
+  *buf = strtok_r (cmd, " ", &save_ptr);
+  return ;
 }

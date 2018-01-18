@@ -12,9 +12,13 @@ static void syscall_handler (struct intr_frame *);
 
 static void (*syscall_handlers[SYSCALL_COUNT]) (struct intr_frame *);
 
+static void sys_halt_handle (struct intr_frame *);
+static void sys_exit_handle (struct intr_frame *);
 static void sys_write_handle (struct intr_frame *);
 static void sys_exec_handle (struct intr_frame *);
 static void sys_wait_handle (struct intr_frame *);
+
+static void exit (int status);
 
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
@@ -26,8 +30,8 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 
   /* Initialize system calls function pointers. */
-  // syscall_handlers[SYS_HALT]     = &sys_halt_handle;
-  // syscall_handlers[SYS_EXIT]     = &sys_exit_handle;
+  syscall_handlers[SYS_HALT]     = &sys_halt_handle;
+  syscall_handlers[SYS_EXIT]     = &sys_exit_handle;
   syscall_handlers[SYS_EXEC]     = &sys_exec_handle;
   syscall_handlers[SYS_WAIT]     = &sys_wait_handle;
   // syscall_handlers[SYS_CREATE]   = &sys_create_handle;
@@ -40,6 +44,26 @@ syscall_init (void)
   // syscall_handlers[SYS_TELL]     = &sys_tell_handle;
   // syscall_handlers[SYS_CLOSE]    = &sys_close_handle;
 }
+
+static void
+sys_halt_handle (struct intr_frame *f)
+{
+  shutdown_power_off ();
+}
+
+static void
+exit (int status){
+  printf("%s: exit(%d)\n", thread_current()->name, status);
+  process_exit ();
+  thread_exit ();
+}
+
+static void
+sys_exit_handle (struct intr_frame *f) {
+   int status = get_user_four_byte (f->esp + 4);
+   exit (status);
+}
+
 
 static void
 sys_exec_handle (struct intr_frame *f) {
@@ -94,11 +118,11 @@ get_user_four_byte (const uint8_t *uaddr)
   int result = 0;
   for (int i=0; i<4; i++)
      {
-       if ((void *)(uaddr+i) >= PHYS_BASE);
-          //TODO: exit (-1);
+       if ((void *)(uaddr+i) >= PHYS_BASE)
+           exit (-1);
        int retVal = get_user (uaddr + i);
-       if (retVal == -1);
-          //TODO: exit (-1);
+       if (retVal == -1)
+           exit (-1);
        result |= (retVal << (8*i));
      }
    return result;
