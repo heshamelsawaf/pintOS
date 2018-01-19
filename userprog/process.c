@@ -77,9 +77,7 @@ process_execute (const char *file_name)
 
   if (pid != -1)
     {
-      // Add this to children processes.
       tid_t current_tid = thread_tid ();
-
       struct process *proc = get_process (current_tid);
       list_push_back (&proc->children_processes, &get_process (pid)->elem);
     }
@@ -95,6 +93,7 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
   char buf[BUFSIZE];
+  struct file *file;
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -117,9 +116,22 @@ start_process (void *file_name_)
       thread_exit (-1);
     }
 
+  file = filesys_open (thread_name ());
+  if (file == NULL)
+    {
+      /* Send a message to process waiting in `process_execute ()` with -1
+      indicating failure in opening ELF binaries, quit afterwards. */
+      ipc_send (buf, -1);
+      thread_exit (-1);
+    }
+
+  /* Deny Writes to process executable. */
+  file_deny_write (file);
+
   /* Construct a process struct element and add it to global processes list. */
   struct process *proc = (struct process *) malloc (sizeof (struct process));
   proc->pid = tid;
+  proc->executable = file;
   list_init (&proc->children_processes);
   list_init (&proc->files);
   list_push_back (&all_processes_list, &proc->allelem);
@@ -189,8 +201,15 @@ void
 process_exit (int status)
 {
   struct thread *cur = thread_current ();
+  struct process *proc = get_process (thread_tid ());
   uint32_t *pd;
   char buf[BUFSIZE];
+
+  if (proc->executable) {
+    file_allow_write(proc->executable);
+    file_close(proc->executable);
+  }
+
 
   snprintf (buf, BUFSIZE, "exit %d", cur->tid);
   ipc_send (buf, status);
@@ -212,6 +231,7 @@ process_exit (int status)
       pagedir_destroy (pd);
     }
 }
+
 
 /* Sets up the CPU for running user code in the current
    thread.
@@ -332,6 +352,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done;
     }
+
+  /* Deny Writes to process executable. */
+  file_deny_write (file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr

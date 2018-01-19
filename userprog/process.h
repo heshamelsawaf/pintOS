@@ -16,11 +16,11 @@ struct process *get_process (tid_t tid);
 
 struct process {
   pid_t pid;
+  struct list files;
   struct list children_processes;
   struct list_elem elem;
   struct list_elem allelem;
-
-  struct list files;
+  struct file *executable;
 };
 
 #endif /* userprog/process.h */
