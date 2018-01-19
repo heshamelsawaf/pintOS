@@ -18,6 +18,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #define BUFSIZE 100
 
 
@@ -30,16 +31,17 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 'argv' with an argument count 'argc'. */
 void parse_args(char *file_name, char **argv, int *argc);
 
-/* Get process with given tid from list of all processes currently resident
-in the system. */
-struct process *get_process (tid_t tid);
-
 void get_process_name (char*, char **);
 
 
 /* Initiate processes system. */
-void process_init () {
+void process_init (void) {
   list_init (&all_processes_list);
+  struct process *parent = (struct process *) malloc (sizeof (struct process));
+  parent->pid = thread_tid ();
+  list_init (&parent->children_processes);
+  list_init (&parent->files);
+  list_push_back (&all_processes_list, &parent->allelem);
 }
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -79,17 +81,7 @@ process_execute (const char *file_name)
       tid_t current_tid = thread_tid ();
 
       struct process *proc = get_process (current_tid);
-
-      if (proc == NULL)
-        {
-            struct process *parent = (struct process *) malloc (sizeof (struct process));
-            parent->pid = current_tid;
-            list_init (&parent->children_processes);
-            list_push_back (&all_processes_list, &parent->allelem);
-            list_push_back (&parent->children_processes, &get_process (pid)->elem);
-        }
-      else
-        list_push_back (&proc->children_processes, &get_process (pid)->elem);
+      list_push_back (&proc->children_processes, &get_process (pid)->elem);
     }
   return pid;
 }
@@ -129,6 +121,7 @@ start_process (void *file_name_)
   struct process *proc = (struct process *) malloc (sizeof (struct process));
   proc->pid = tid;
   list_init (&proc->children_processes);
+  list_init (&proc->files);
   list_push_back (&all_processes_list, &proc->allelem);
 
   /* Send a message to process waiting in `process_execute ()` with `tid/pid`

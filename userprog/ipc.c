@@ -23,7 +23,7 @@ struct list sent_mail;
 struct list waiting_list;
 
 
-void ipc_init ()
+void ipc_init (void)
 {
   list_init (&sent_mail);
   list_init (&waiting_list);

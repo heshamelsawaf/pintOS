@@ -5,6 +5,12 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "devices/shutdown.h"
+#include "userprog/process.h"
+#include "threads/synch.h"
+#include "threads/malloc.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
+#include "devices/input.h"
 #define SYSCALL_COUNT 13
 
 typedef int pid_t;
@@ -16,6 +22,7 @@ static struct lock fid_lock;
 struct file_elem{
   struct list_elem elem;
   void* data;
+  int fid;
 };
 
 static void syscall_handler (struct intr_frame *);
@@ -40,6 +47,10 @@ static void sys_close_handle (struct intr_frame *);
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static int get_user_four_byte (const uint8_t *uaddr);
+
+static struct file* get_file (int fd);
+static int allocate_fid (void);
+static struct list_elem *get_list_elem (int fd);
 
 void
 syscall_init (void)
@@ -124,10 +135,10 @@ sys_remove_handle (struct intr_frame *f)
 static int
 allocate_fid ()
 {
-  lock_acquire (&tid_lock);
+  lock_acquire (&fid_lock);
   fid++;
   int temp = fid;
-  lock_release (&tid_lock);
+  lock_release (&fid_lock);
 
   return temp;
 }
@@ -141,28 +152,29 @@ sys_open_handle (struct intr_frame *f)
   f->eax = -1;  /* error value, will be overwritten in case of succ */
 
   void *file_ptr = filesys_open (file);
-  if(!file_ptr) return;
+  if(!file_ptr)
+     return;
 
-  file_elem *elem = malloc(sizeof(file_elem));
+  struct file_elem *elem = (struct file_elem *)malloc(sizeof(struct file_elem));
   elem->data = file_ptr;
-  elem->elem = allocate_fid();
-
-  list_push_back (&(get_process (thread_tid ())->files), &(elem->elem));
-  f->eax = elem->elem;
+  elem->fid = allocate_fid();
+  struct process *p = get_process (thread_tid ());
+  list_push_back (&p->files, &elem->elem);
+  f->eax = elem->fid;
 }
 
-struct file*
+static struct file*
 get_file (int fd)
 {
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
 
-  for (e = list_begin (&process_file_list); e != list_end (&process_file_list);
+  for (e = list_begin (process_file_list); e != list_end (process_file_list);
        e = list_next (e))
     {
       struct file_elem *t = list_entry (e,
-      struct file_elem, allelem);
-      if(fd == t->elem)
+      struct file_elem, elem);
+      if(fd == t->fid)
         return (struct file*) t->data;
     }
 
@@ -174,10 +186,11 @@ sys_filesize_handle (struct intr_frame *f)
 {
   int fd = (int)get_user_four_byte (f->esp + sizeof(void*));
 
-  f->eax = -1;  /* error value, will be overwritten in case of succ */
+  f->eax = 0xffffffff;  /* error value, will be overwritten in case of succ */
 
   struct file* file_object =  get_file(fd);
-  if(file_object == NULL)  return;  /* try to access to wrong file */
+  if(file_object == NULL)   /* try to access to wrong file */
+     return;
 
   f->eax = file_length(file_object);  /* get the size */
 }
@@ -198,7 +211,7 @@ sys_read_handle (struct intr_frame *f)
 
   if(fd == 0)
     {
-      for(int i=0;i<size;i++)
+      for(unsigned i=0;i<size;i++)
         *(char*)(buffer+i) = input_getc();
 
       f->eax = size;
@@ -206,37 +219,28 @@ sys_read_handle (struct intr_frame *f)
     }
 
   struct file* file_object =  get_file(fd);
-  if(file_object == NULL)  return;  /* try to access to wrong file */
-  f->eax = file_read (file_object, buffer, size) /* read */
+
+  if(file_object == NULL)    /* try to access to wrong file */
+    return;
+  f->eax = file_read (file_object, buffer, size); /* read */
 }
 
 static void
 sys_write_handle (struct intr_frame *f)
 {
-<<<<<<< HEAD
-  int fd = get_user_four_byte (f->esp + 4);
-  const void *buffer = (const void *)get_user_four_byte (f->esp + 8);
-  unsigned size =  (unsigned)get_user_four_byte(f->esp + 12);
-=======
   int fd = (int) get_user_four_byte (f->esp + 4);
   void *buffer = (void *) get_user_four_byte (f->esp + 8);
   unsigned size =  (unsigned) get_user_four_byte(f->esp + 12);
 
   if (buffer >= PHYS_BASE || get_user (buffer) == -1) exit (-1);
   f->eax = -1;  /* error value, will be overwritten in case of succ */
->>>>>>> 4e6eb1c462391003041b5b6e5d7bc82461ab6f0a
 
 
   /* Check for pointer validity. */
   if (buffer + size - 1 >= PHYS_BASE || get_user (buffer + size - 1) == -1)
      exit (-1);
 
-<<<<<<< HEAD
-
-  if (fd == STDOUT_FILENO)
-=======
   if (fd == 1)
->>>>>>> 4e6eb1c462391003041b5b6e5d7bc82461ab6f0a
     {
       putbuf (buffer,size);
       f->eax = size;
@@ -246,7 +250,7 @@ sys_write_handle (struct intr_frame *f)
   struct file* file_object =  get_file(fd);
   if(file_object == NULL)  return;  /* try to access to wrong file */
 
-  f->eax = file_write (file_object, buffer, size) /* read */
+  f->eax = file_write (file_object, buffer, size); /* write */
 }
 
 static void
@@ -272,12 +276,31 @@ sys_tell_handle (struct intr_frame *f)
   f->eax = file_tell(file_object);
 }
 
+static struct list_elem*
+get_list_elem (int fd)
+{
+  struct list_elem *e;
+  struct list* process_file_list = &(get_process (thread_tid ())->files);
+
+  for (e = list_begin (process_file_list); e != list_end (process_file_list);
+       e = list_next (e))
+    {
+      struct file_elem *t = list_entry (e,
+      struct file_elem, elem);
+      if(fd == t->fid)
+        return e;
+    }
+
+  return NULL;
+}
+
 static void
 sys_close_handle (struct intr_frame *f)
 {
   int fd = get_user_four_byte (f->esp + 4);
   file_close (get_file (fd));
-  list_remove (&(get_file (fd)->elem));
+  if(get_list_elem(fd) != NULL)
+    list_remove (get_list_elem(fd));
 }
 
 static void
@@ -286,7 +309,7 @@ syscall_handler (struct intr_frame *f)
   int syscall_key = get_user_four_byte (f->esp);
   syscall_handlers[syscall_key] (f);
 }
-  
+
 /* Reads 4-bytes at user virtual address UADDR.
  UADDR must be below PHYS_BASE.
  Returns the 4-bytes value if successful, terminate the

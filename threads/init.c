@@ -90,7 +90,6 @@ int main (void) NO_RETURN;
      then enable console locking. */
   thread_init ();
   console_init ();
-  process_init ();
 
   /* Greet user. */
   printf ("Pintos booting with %'"PRIu32" kB RAM...\n",
@@ -115,6 +114,7 @@ int main (void) NO_RETURN;
 #ifdef USERPROG
   exception_init ();
   syscall_init ();
+  process_init ();
   ipc_init ();
 #endif
 

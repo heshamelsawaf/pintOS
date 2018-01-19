@@ -2,7 +2,7 @@
 #define USERPROG_IPC_H
 
 /* Initializes communication system of IPC. */
-void ipc_init ();
+void ipc_init (void);
 /* Send a message with a signature via IPC. */
 void ipc_send (char *signature, int msg);
 /* Receive a message with a signature via IPC */
