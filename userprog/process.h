@@ -16,6 +16,8 @@ struct process {
   struct list children_processes;
   struct list_elem elem;
   struct list_elem allelem;
+
+  struct list files;
 };
 
 #endif /* userprog/process.h */
