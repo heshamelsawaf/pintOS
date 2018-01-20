@@ -19,6 +19,8 @@ int fid = 2;
 
 static struct lock fid_lock;
 
+static struct lock files_list_lock;
+
 struct file_elem{
   struct list_elem elem;
   void* data;
@@ -58,6 +60,7 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 
   lock_init (&fid_lock);  /* Initialize fid lock. */
+  lock_init (&files_list_lock);
 
   /* Initialize system calls function pointers. */
   syscall_handlers[SYS_HALT]     = &sys_halt_handle;
@@ -93,8 +96,29 @@ exit (int status)
 static void
 sys_exit_handle (struct intr_frame *f)
 {
-   int status = get_user_four_byte (f->esp + 4);
-   exit (status);
+  int status = get_user_four_byte (f->esp + 4);
+
+  lock_acquire (&files_list_lock);
+  struct list_elem *e;
+  struct list* process_file_list = &(get_process (thread_tid ())->files);
+  struct list_elem *next;
+
+  for (e = list_begin (process_file_list); e != list_end (process_file_list);
+       e = next)
+    {
+      next = list_next (e);
+      struct file_elem *t = list_entry (e,
+      struct file_elem, elem);
+
+      filesys_acquire_external_lock();
+      file_close ((struct file*) t->data);
+      filesys_release_external_lock();
+
+      free(e);
+    }
+  lock_release (&files_list_lock);
+
+  exit (status);
 }
 
 static void
@@ -105,7 +129,10 @@ sys_exec_handle (struct intr_frame *f)
   /* Check for pointer validity. */
   if (cmd_line >= PHYS_BASE || get_user (cmd_line) == -1)
      exit (-1);
+
+  filesys_acquire_external_lock();
   f->eax = process_execute (cmd_line);
+  filesys_release_external_lock();
 }
 
 static void
@@ -121,7 +148,10 @@ sys_create_handle (struct intr_frame *f)
   char *file = (char *)get_user_four_byte (f->esp + sizeof(void*));
   if (file >= PHYS_BASE || get_user (file) == -1) exit (-1);
   unsigned initial_size = * (unsigned *) (f->esp + 2*sizeof(void*));
+
+  filesys_acquire_external_lock();
   f->eax = filesys_create (file, initial_size);
+  filesys_release_external_lock();
 }
 
 static void
@@ -129,7 +159,10 @@ sys_remove_handle (struct intr_frame *f)
 {
   char *file = (char *)get_user_four_byte (f->esp + sizeof(void*));
   if (file >= PHYS_BASE || get_user (file) == -1) exit (-1);
+
+  filesys_acquire_external_lock();
   f->eax = filesys_remove (file);
+  filesys_release_external_lock();
 }
 
 static int
@@ -151,7 +184,10 @@ sys_open_handle (struct intr_frame *f)
 
   f->eax = -1;  /* error value, will be overwritten in case of succ */
 
+  filesys_acquire_external_lock();
   void *file_ptr = filesys_open (file);
+  filesys_release_external_lock();
+
   if(!file_ptr)
      return;
 
@@ -159,13 +195,18 @@ sys_open_handle (struct intr_frame *f)
   elem->data = file_ptr;
   elem->fid = allocate_fid();
   struct process *p = get_process (thread_tid ());
+
+  lock_acquire (&files_list_lock);
   list_push_back (&p->files, &elem->elem);
+  lock_release (&files_list_lock);
+
   f->eax = elem->fid;
 }
 
 static struct file*
 get_file (int fd)
 {
+  lock_acquire (&files_list_lock);
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
 
@@ -174,10 +215,12 @@ get_file (int fd)
     {
       struct file_elem *t = list_entry (e,
       struct file_elem, elem);
-      if(fd == t->fid)
+      if(fd == t->fid){
+        lock_release (&files_list_lock);
         return (struct file*) t->data;
+      }
     }
-
+  lock_release (&files_list_lock);
   return NULL;
 }
 
@@ -192,7 +235,9 @@ sys_filesize_handle (struct intr_frame *f)
   if(file_object == NULL)   /* try to access to wrong file */
      return;
 
+  filesys_acquire_external_lock();
   f->eax = file_length(file_object);  /* get the size */
+  filesys_release_external_lock();
 }
 
 static void
@@ -222,7 +267,10 @@ sys_read_handle (struct intr_frame *f)
 
   if(file_object == NULL)    /* try to access to wrong file */
     return;
+
+  filesys_acquire_external_lock();
   f->eax = file_read (file_object, buffer, size); /* read */
+  filesys_release_external_lock();
 }
 
 static void
@@ -242,7 +290,10 @@ sys_write_handle (struct intr_frame *f)
 
   if (fd == 1)
     {
+      filesys_acquire_external_lock();
       putbuf (buffer,size);
+      filesys_release_external_lock();
+
       f->eax = size;
       return;
     }
@@ -250,7 +301,9 @@ sys_write_handle (struct intr_frame *f)
   struct file* file_object =  get_file(fd);
   if(file_object == NULL)  return;  /* try to access to wrong file */
 
+  filesys_acquire_external_lock();
   f->eax = file_write (file_object, buffer, size); /* write */
+  filesys_release_external_lock();
 }
 
 static void
@@ -262,7 +315,9 @@ sys_seek_handle (struct intr_frame *f)
   struct file* file_object =  get_file(fd);
   if(file_object == NULL)  return;  /* try to access to wrong file */
 
+  filesys_acquire_external_lock();
   file_seek(file_object,position);
+  filesys_release_external_lock();
 }
 
 static void
@@ -273,12 +328,15 @@ sys_tell_handle (struct intr_frame *f)
   struct file* file_object =  get_file(fd);
   if(file_object == NULL)  return;  /* try to access to wrong file */
 
+  filesys_acquire_external_lock();
   f->eax = file_tell(file_object);
+  filesys_release_external_lock();
 }
 
 static struct list_elem*
 get_list_elem (int fd)
 {
+  lock_acquire (&files_list_lock);
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
 
@@ -287,10 +345,13 @@ get_list_elem (int fd)
     {
       struct file_elem *t = list_entry (e,
       struct file_elem, elem);
-      if(fd == t->fid)
+      if(fd == t->fid){
+        lock_release (&files_list_lock);
         return e;
+      }
     }
 
+  lock_release (&files_list_lock);
   return NULL;
 }
 
@@ -298,9 +359,16 @@ static void
 sys_close_handle (struct intr_frame *f)
 {
   int fd = get_user_four_byte (f->esp + 4);
+
+  filesys_acquire_external_lock();
   file_close (get_file (fd));
-  if(get_list_elem(fd) != NULL)
+  filesys_release_external_lock();
+
+  if(get_list_elem(fd) != NULL){
+    lock_acquire (&files_list_lock);
     list_remove (get_list_elem(fd));
+    lock_release (&files_list_lock);
+  }
 }
 
 static void

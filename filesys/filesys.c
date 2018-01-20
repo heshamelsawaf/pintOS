@@ -12,11 +12,25 @@ struct block *fs_device;
 
 static void do_format (void);
 
+static struct lock file_system;
+
+
+void filesys_acquire_external_lock (){
+  lock_acquire (&file_system);
+}
+
+void filesys_release_external_lock (){
+  lock_release (&file_system);
+}
+
 /* Initializes the file system module.
    If FORMAT is true, reformats the file system. */
 void
 filesys_init (bool format)
 {
+
+  lock_init (&file_system); /* initialize the lock */
+
   fs_device = block_get_role (BLOCK_FILESYS);
   if (fs_device == NULL)
     PANIC ("No file system device found, can't initialize file system.");
