@@ -139,9 +139,14 @@ main (int argc, char *argv[])
       child_pid = spawn_child (n + 1, RECURSE);
 
       /* If maximum depth is reached, return result. */
-      if (child_pid == -1)
+      if (child_pid == -1){
+      //  msg ("Max reashed and is %d", n);
         return n;
+      }
+      if (n==0){
+      //  msg (">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>In Loop %d", i);
 
+      }
       /* Else wait for child to report how deeply it was able to recurse. */
       int reached_depth = wait (child_pid);
       if (reached_depth == -1)

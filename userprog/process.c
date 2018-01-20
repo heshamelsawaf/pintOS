@@ -57,24 +57,30 @@ process_execute (const char *file_name)
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
-  fn_copy2 = palloc_get_page (0);
-  if (fn_copy == NULL || fn_copy2 == NULL)
+  if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+
+  fn_copy2 = palloc_get_page (0);
+  if (fn_copy == NULL){
+    palloc_free_page (fn_copy);
+    return TID_ERROR;
+  }
   strlcpy (fn_copy2, file_name, PGSIZE);
   get_process_name (fn_copy2, &cmd_name);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (fn_copy2, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (cmd_name, PRI_DEFAULT, start_process, fn_copy);
+
   if (tid == TID_ERROR)
-    {
       palloc_free_page (fn_copy);
-      palloc_free_page (fn_copy2);
-    }
+
 
   /* Wait for IPC message receiving of pid. */
   snprintf (buf, BUFSIZE, "exec %d", tid);
   pid_t pid = ipc_receive (buf);
+  palloc_free_page (fn_copy2);
+
 
   if (pid != -1)
     {
@@ -126,11 +132,20 @@ start_process (void *file_name_)
       thread_exit (-1);
     }
 
+  /* Construct a process struct element and add it to global processes list. */
+  struct process *proc = (struct process *) malloc (sizeof (struct process));
+  if (proc == NULL)
+  {
+    /* Send a message to process waiting in `process_execute ()` with -1
+       indicating failure in opening ELF binaries, quit afterwards. */
+    ipc_send (buf, -1);
+    thread_exit (-1);
+  }
+
   /* Deny Writes to process executable. */
   file_deny_write (file);
 
-  /* Construct a process struct element and add it to global processes list. */
-  struct process *proc = (struct process *) malloc (sizeof (struct process));
+
   proc->pid = tid;
   proc->executable = file;
   list_init (&proc->children_processes);
@@ -204,15 +219,8 @@ void
 process_exit (int status)
 {
   struct thread *cur = thread_current ();
-  struct process *proc = get_process (thread_tid ());
   uint32_t *pd;
   char buf[BUFSIZE];
-
-  if (proc->executable)
-    {
-      file_allow_write (proc->executable);
-      file_close (proc->executable);
-    }
 
   snprintf (buf, BUFSIZE, "exit %d", cur->tid);
   ipc_send (buf, status);
@@ -349,7 +357,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   parse_args (file_name_cp, argv, &argc);
 
   /* Open executable file. */
+  filesys_acquire_external_lock();
   file = filesys_open (argv[0]);
+  filesys_release_external_lock();
   if (file == NULL)
     {
       printf ("load: %s: open failed\n", file_name);
