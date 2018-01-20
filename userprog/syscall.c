@@ -365,8 +365,9 @@ sys_close_handle (struct intr_frame *f)
   filesys_release_external_lock();
 
   if(get_list_elem(fd) != NULL){
+    struct list_elem *to_be_removed = get_list_elem(fd);
     lock_acquire (&files_list_lock);
-    list_remove (get_list_elem(fd));
+    list_remove (to_be_removed);
     lock_release (&files_list_lock);
   }
 }
