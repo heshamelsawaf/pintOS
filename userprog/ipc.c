@@ -82,6 +82,7 @@ int ipc_receive (char *signature)
 
       list_remove (e);
       data = msg->data;
+      free (msg->signature);
       free (msg);
       return data;
     }
@@ -91,7 +92,6 @@ int ipc_receive (char *signature)
   struct waiting_process *proc = malloc (sizeof (struct waiting_process));
   proc->signature = malloc (sizeof (char *));
   strlcpy (proc->signature, signature, strlen (signature) + 1);
-  proc->signature = signature;
 
   sema_init (&proc->sema, 0);
 
@@ -109,7 +109,9 @@ int ipc_receive (char *signature)
       list_remove (e);
       list_remove (&proc->elem);
       data = msg->data;
+      free (msg->signature);
       free (msg);
+      free (proc->signature);
       free (proc);
       return data;
     }

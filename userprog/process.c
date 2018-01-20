@@ -54,7 +54,6 @@ process_execute (const char *file_name)
   char buf[BUFSIZE];
   tid_t tid;
 
-
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -65,11 +64,13 @@ process_execute (const char *file_name)
   strlcpy (fn_copy2, file_name, PGSIZE);
   get_process_name (fn_copy2, &cmd_name);
 
-
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (fn_copy2, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy);
+    {
+      palloc_free_page (fn_copy);
+      palloc_free_page (fn_copy2);
+    }
 
   /* Wait for IPC message receiving of pid. */
   snprintf (buf, BUFSIZE, "exec %d", tid);
@@ -102,16 +103,16 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
-  /* If load failed, quit. */
   palloc_free_page (file_name);
 
   tid_t tid = thread_tid ();
   snprintf (buf, BUFSIZE, "exec %d", tid);
 
+  /* If load failed, quit. */
   if (!success)
     {
       /* Send a message to process waiting in `process_execute ()` with -1
-      indicating failure in loading ELF binaries, quit afterwards. */
+         indicating failure in loading ELF binaries, quit afterwards. */
       ipc_send (buf, -1);
       thread_exit (-1);
     }
@@ -120,7 +121,7 @@ start_process (void *file_name_)
   if (file == NULL)
     {
       /* Send a message to process waiting in `process_execute ()` with -1
-      indicating failure in opening ELF binaries, quit afterwards. */
+         indicating failure in opening ELF binaries, quit afterwards. */
       ipc_send (buf, -1);
       thread_exit (-1);
     }
@@ -137,8 +138,8 @@ start_process (void *file_name_)
   list_push_back (&all_processes_list, &proc->allelem);
 
   /* Send a message to process waiting in `process_execute ()` with `tid/pid`
-  indicating success of loading ELF binaries, process waiting can now add this processes
-  to its list of child processes. */
+     indicating success of loading ELF binaries, process waiting can now
+     add this processes to its list of child processes. */
   ipc_send (buf, tid);
 
   /* Start the user process by simulating a return from an
@@ -170,7 +171,6 @@ process_wait (tid_t child_tid)
 
   struct list_elem *e;
 
-
   for (e = list_begin (&current_process->children_processes);
        e != list_end (&current_process->children_processes); e = list_next (e))
 
@@ -193,6 +193,9 @@ process_wait (tid_t child_tid)
 
     /* remove child from childs-list. */
     list_remove (&child_process->elem);
+    list_remove (&child_process->allelem);
+    free (child_process);
+
     return status;
 }
 
@@ -205,11 +208,11 @@ process_exit (int status)
   uint32_t *pd;
   char buf[BUFSIZE];
 
-  if (proc->executable) {
-    file_allow_write(proc->executable);
-    file_close(proc->executable);
-  }
-
+  if (proc->executable)
+    {
+      file_allow_write (proc->executable);
+      file_close (proc->executable);
+    }
 
   snprintf (buf, BUFSIZE, "exit %d", cur->tid);
   ipc_send (buf, status);
