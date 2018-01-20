@@ -17,6 +17,8 @@ struct process *get_process (tid_t tid);
 struct process {
   pid_t pid;
   struct list files;
+  struct lock files_list_lock;
+
   struct list children_processes;
   struct list_elem elem;
   struct list_elem allelem;

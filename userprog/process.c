@@ -41,6 +41,7 @@ void process_init (void) {
   parent->pid = thread_tid ();
   list_init (&parent->children_processes);
   list_init (&parent->files);
+  lock_init (&parent->files_list_lock);
   list_push_back (&all_processes_list, &parent->allelem);
 }
 /* Starts a new thread running a user program loaded from
