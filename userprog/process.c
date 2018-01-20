@@ -41,7 +41,6 @@ void process_init (void) {
   parent->pid = thread_tid ();
   list_init (&parent->children_processes);
   list_init (&parent->files);
-  lock_init (&parent->files_list_lock);
   list_push_back (&all_processes_list, &parent->allelem);
 }
 /* Starts a new thread running a user program loaded from
@@ -68,11 +67,9 @@ process_execute (const char *file_name)
 
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (cmd_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_copy2, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
-
-  palloc_free_page (fn_copy2);
 
   /* Wait for IPC message receiving of pid. */
   snprintf (buf, BUFSIZE, "exec %d", tid);
@@ -196,7 +193,6 @@ process_wait (tid_t child_tid)
 
     /* remove child from childs-list. */
     list_remove (&child_process->elem);
-    free (child_process);
     return status;
 }
 
