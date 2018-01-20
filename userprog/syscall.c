@@ -103,14 +103,13 @@ sys_exit_handle (struct intr_frame *f)
        e = next)
     {
       next = list_next (e);
-      struct file_elem *t = list_entry (e,
-      struct file_elem, elem);
+      struct file_elem *t = list_entry (e, struct file_elem, elem);
 
-      filesys_acquire_external_lock();
+      filesys_acquire_external_lock ();
       file_close ((struct file*) t->data);
-      filesys_release_external_lock();
+      filesys_release_external_lock ();
 
-      free(t);
+      free (t);
     }
 
   exit (status);
@@ -174,7 +173,7 @@ allocate_fid ()
 static void
 sys_open_handle (struct intr_frame *f)
 {
-  char *file = (char *)get_user_four_byte (f->esp + sizeof(void*));
+  char *file = (char *) get_user_four_byte (f->esp + sizeof (void*) );
   if (file >= PHYS_BASE || get_user (file) == -1) exit (-1);
 
   f->eax = -1;  /* error value, will be overwritten in case of succ */
@@ -183,12 +182,12 @@ sys_open_handle (struct intr_frame *f)
   void *file_ptr = filesys_open (file);
   filesys_release_external_lock();
 
-  if(!file_ptr)
+  if (!file_ptr)
      return;
 
-  struct file_elem *elem = (struct file_elem *)malloc(sizeof(struct file_elem));
+  struct file_elem *elem = (struct file_elem *) malloc (sizeof (struct file_elem));
   elem->data = file_ptr;
-  elem->fid = allocate_fid();
+  elem->fid = allocate_fid ();
   struct process *p = get_process (thread_tid ());
   list_push_back (&p->files, &elem->elem);
 
@@ -204,11 +203,9 @@ get_file (int fd)
   for (e = list_begin (process_file_list); e != list_end (process_file_list);
        e = list_next (e))
     {
-      struct file_elem *t = list_entry (e,
-      struct file_elem, elem);
-      if(fd == t->fid){
+      struct file_elem *t = list_entry (e, struct file_elem, elem);
+      if (fd == t->fid)
         return (struct file*) t->data;
-      }
     }
   return NULL;
 }
@@ -216,17 +213,17 @@ get_file (int fd)
 static void
 sys_filesize_handle (struct intr_frame *f)
 {
-  int fd = (int)get_user_four_byte (f->esp + sizeof(void*));
+  int fd = (int) get_user_four_byte (f->esp + sizeof(void*));
 
   f->eax = 0xffffffff;  /* error value, will be overwritten in case of succ */
 
-  struct file* file_object =  get_file(fd);
-  if(file_object == NULL)   /* try to access to wrong file */
+  struct file* file_object = get_file (fd);
+  if (file_object == NULL)   /* try to access to wrong file */
      return;
 
-  filesys_acquire_external_lock();
-  f->eax = file_length(file_object);  /* get the size */
-  filesys_release_external_lock();
+  filesys_acquire_external_lock ();
+  f->eax = file_length (file_object);  /* get the size */
+  filesys_release_external_lock ();
 }
 
 static void
@@ -279,10 +276,9 @@ sys_write_handle (struct intr_frame *f)
 
   if (fd == 1)
     {
-      filesys_acquire_external_lock();
+      // filesys_acquire_external_lock();
       putbuf (buffer,size);
-      filesys_release_external_lock();
-
+      // filesys_release_external_lock();
       f->eax = size;
       return;
     }
@@ -350,13 +346,14 @@ sys_close_handle (struct intr_frame *f)
   file_close (get_file (fd));
   filesys_release_external_lock();
 
-  if(get_list_elem(fd) != NULL){
-    struct list_elem* to_be_removed = get_list_elem(fd);
-    list_remove (to_be_removed);
-    struct file_elem *t = list_entry (to_be_removed,
-    struct file_elem, elem);
-    free(t);
-  }
+  if (get_list_elem (fd) != NULL)
+    {
+      struct list_elem* to_be_removed = get_list_elem(fd);
+      list_remove (to_be_removed);
+      struct file_elem *t = list_entry (to_be_removed,
+      struct file_elem, elem);
+      free (t);
+    }
 }
 
 static void

@@ -30,15 +30,17 @@ shutdown (void)
 {
   switch (how)
     {
-      case SHUTDOWN_POWER_OFF:shutdown_power_off ();
+    case SHUTDOWN_POWER_OFF:
+      shutdown_power_off ();
       break;
 
-      case SHUTDOWN_REBOOT:shutdown_reboot ();
+    case SHUTDOWN_REBOOT:
+      shutdown_reboot ();
       break;
 
-      default:
-        /* Nothing to do. */
-        break;
+    default:
+      /* Nothing to do. */
+      break;
     }
 }
 
@@ -56,8 +58,8 @@ shutdown_reboot (void)
 {
   printf ("Rebooting...\n");
 
-  /* See [kbd] for details on how to program the keyboard
-   * controller. */
+    /* See [kbd] for details on how to program the keyboard
+     * controller. */
   for (;;)
     {
       int i;
@@ -99,7 +101,7 @@ shutdown_power_off (void)
 
   /* ACPI Shutdown sequence supported by Bochs and QEMU
      http://forum.osdev.org/viewtopic.php?t=16990  */
-  outb (0xf4, 0x00);
+  outw( 0x604, 0x0 | 0x2000 );
 
   /* This is a special power-off sequence supported by Bochs and
      QEMU, but not by physical hardware. */
