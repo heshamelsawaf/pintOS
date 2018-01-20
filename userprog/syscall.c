@@ -95,7 +95,6 @@ sys_exit_handle (struct intr_frame *f)
 {
   int status = get_user_four_byte (f->esp + 4);
 
-  lock_acquire (&(get_process (thread_tid ())->files_list_lock));
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
   struct list_elem *next;
@@ -113,7 +112,6 @@ sys_exit_handle (struct intr_frame *f)
 
       free(t);
     }
-  lock_release (&(get_process (thread_tid ())->files_list_lock));
 
   exit (status);
 }
@@ -192,10 +190,7 @@ sys_open_handle (struct intr_frame *f)
   elem->data = file_ptr;
   elem->fid = allocate_fid();
   struct process *p = get_process (thread_tid ());
-
-  lock_acquire (&(get_process (thread_tid ())->files_list_lock));
   list_push_back (&p->files, &elem->elem);
-  lock_release (&(get_process (thread_tid ())->files_list_lock));
 
   f->eax = elem->fid;
 }
@@ -203,7 +198,6 @@ sys_open_handle (struct intr_frame *f)
 static struct file*
 get_file (int fd)
 {
-  lock_acquire (&(get_process (thread_tid ())->files_list_lock));
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
 
@@ -213,11 +207,9 @@ get_file (int fd)
       struct file_elem *t = list_entry (e,
       struct file_elem, elem);
       if(fd == t->fid){
-        lock_release (&(get_process (thread_tid ())->files_list_lock));
         return (struct file*) t->data;
       }
     }
-  lock_release (&(get_process (thread_tid ())->files_list_lock));
   return NULL;
 }
 
@@ -333,7 +325,6 @@ sys_tell_handle (struct intr_frame *f)
 static struct list_elem*
 get_list_elem (int fd)
 {
-  lock_acquire (&(get_process (thread_tid ())->files_list_lock));
   struct list_elem *e;
   struct list* process_file_list = &(get_process (thread_tid ())->files);
 
@@ -343,12 +334,10 @@ get_list_elem (int fd)
       struct file_elem *t = list_entry (e,
       struct file_elem, elem);
       if(fd == t->fid){
-        lock_release (&(get_process (thread_tid ())->files_list_lock));
         return e;
       }
     }
 
-  lock_release (&(get_process (thread_tid ())->files_list_lock));
   return NULL;
 }
 
@@ -363,12 +352,10 @@ sys_close_handle (struct intr_frame *f)
 
   if(get_list_elem(fd) != NULL){
     struct list_elem* to_be_removed = get_list_elem(fd);
-    lock_acquire (&(get_process (thread_tid ())->files_list_lock));
     list_remove (to_be_removed);
     struct file_elem *t = list_entry (to_be_removed,
     struct file_elem, elem);
     free(t);
-    lock_release (&(get_process (thread_tid ())->files_list_lock));
   }
 }
 
