@@ -104,8 +104,10 @@ exit (int status)
 
         if (proc->executable)
         {
+                filesys_acquire_external_lock();
                 file_allow_write (proc->executable);
                 file_close (proc->executable);
+                filesys_release_external_lock();
         }
 
         thread_exit (status);
