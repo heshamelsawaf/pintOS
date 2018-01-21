@@ -15,12 +15,13 @@ static void do_format (void);
 
 static struct lock file_system;
 
-
-void filesys_acquire_external_lock (){
+void filesys_acquire_external_lock ()
+{
   lock_acquire (&file_system);
 }
 
-void filesys_release_external_lock (){
+void filesys_release_external_lock ()
+{
   lock_release (&file_system);
 }
 
@@ -29,7 +30,6 @@ void filesys_release_external_lock (){
 void
 filesys_init (bool format)
 {
-
   lock_init (&file_system); /* initialize the lock */
 
   fs_device = block_get_role (BLOCK_FILESYS);
